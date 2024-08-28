@@ -34,11 +34,15 @@ https://huggingface.co/learn/deep-rl-course/unit3/from-q-to-dqn
 Steps:
 
 - defining the network, the epsilon greedy strategy and replay buffer in pytorch
+    - create a policy network and a target network that is copied from the policy network at some interval
+    - use a CNN to learn features automatically from the state space to the feature space. Concatenate channel-wise all the map information from the game state
+    - train when enough data is acquired in the replay buffer
+    - they train after your owns agent move
 - define logging and plotting mechanism for the network and loading it
 - in the setup function (callbacks), load the model and see if we retrain it or used the learned weights
 - in act (callbacks), just do inference taking into account the exploration rate
 - find a way to create features to train on (either learn them using an encoder or hand craft them)
-
+- consider dealing with invalid actions
 
 # Todos
 

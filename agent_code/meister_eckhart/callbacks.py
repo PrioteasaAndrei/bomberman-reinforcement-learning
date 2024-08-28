@@ -1,9 +1,10 @@
 import os
 import pickle
 import random
-
+from .utils import *
 import numpy as np
-
+from .model import JointDQN
+import torch
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
@@ -24,8 +25,11 @@ def setup(self):
     """
     if self.train or not os.path.isfile("my-saved-model.pt"):
         self.logger.info("Setting up model from scratch.")
-        weights = np.random.rand(len(ACTIONS))
-        self.model = weights / weights.sum()
+        # weights = np.random.rand(len(ACTIONS))
+        # self.model = weights / weights.sum()
+
+        self.model = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger)
+
     else:
         self.logger.info("Loading model from saved state.")
         with open("my-saved-model.pt", "rb") as file:
@@ -41,6 +45,15 @@ def act(self, game_state: dict) -> str:
     :param game_state: The dictionary that describes everything on the board.
     :return: The action to take as a string.
     """
+
+    raw_features = state_to_raw_features(self.logger, game_state)
+    expanded_tensor = torch.tensor(raw_features).unsqueeze(0)  # Shape becomes (1, 8, 17, 17)
+    # Repeat the tensor along the batch dimension to create a shape of (64, 8, 17, 17)
+    new_tensor = expanded_tensor.repeat(64, 1, 1, 1)  # Shape becomes (64, 8, 17, 17)
+
+    outputs = self.model(new_tensor.float())
+    self.logger.info(f"Model outputs: {outputs.shape}")
+
     # todo Exploration vs exploitation
     random_prob = .1
     if self.train and random.random() < random_prob:
