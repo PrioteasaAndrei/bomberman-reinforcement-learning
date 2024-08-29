@@ -35,21 +35,25 @@ Steps:
 
 - defining the network, the epsilon greedy strategy and replay buffer in pytorch
     - create a policy network and a target network that is copied from the policy network at some interval
-    - use a CNN to learn features automatically from the state space to the feature space. Concatenate channel-wise all the map information from the game state
     - train when enough data is acquired in the replay buffer
     - they train after your owns agent move
 - define logging and plotting mechanism for the network and loading it
 - in the setup function (callbacks), load the model and see if we retrain it or used the learned weights
 - in act (callbacks), just do inference taking into account the exploration rate
-- find a way to create features to train on (either learn them using an encoder or hand craft them)
 - consider dealing with invalid actions
 
 # Todos
 
-1. Find out if they will use different dimensions for the board. In this case using an encoder to learn the features may not work for different board sizes.
-
-2. Do we want a higher dimensional feature space than the given game state? For the given code from last year, see if the game state liniarized dimension is bigger than the feature space dimension (i.e. 343).
-
 3. Ask if we are allowed to use gymnasium or stable baseline for the project?
 
 4. What is the difference between events and features? Why do we need both and why are not the events linked to the features 1:1?
+   A: events are used to map to rewards which contribute to the calculation of the target q in the bellman equation which is then compared with the predicted Q of the policy network and the loss is used for training.
+
+# Architecture
+
+setup_train is called after setup in callbacks when we are in train mode
+they then train the policy net on the states from the replay experience buffer and the predicted target q values
+https://medium.com/@hkabhi916/mastering-deep-q-learning-with-pytorch-a-comprehensive-guide-a7e690d644fc
+
+We need to define events and check for them so that we can define more rewards so we can speed up the training in the bellman equation
+theory says that auxilliary rewards should only depend on the game states and not 2 on the actions leading there.
