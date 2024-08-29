@@ -4,6 +4,22 @@ import random
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+from collections import deque
+
+
+class ReplayMemory():
+    def __init__(self, maxlen):
+        self.memory = deque([], maxlen=maxlen)
+    
+    def append(self, transition):
+        self.memory.append(transition)
+
+    def sample(self, sample_size):
+        return random.sample(self.memory, sample_size)
+
+    def __len__(self):
+        return len(self.memory)
+
 
 
 class JointDQN(nn.Module):
@@ -45,3 +61,33 @@ class JointDQN(nn.Module):
             x = torch.zeros(1, *input_shape)
             x = self.feature_extractor(x)
             return x.view(1, -1).size(1)
+        
+    def train(self, sampled_batch, optimizer, loss_fn=nn.MSELoss(), epochs=1):
+        '''
+        Train the model given a sample of the replay buffer
+        sampled_batch: list of Transitions
+        '''
+
+        # NOTE: use https://medium.com/@hkabhi916/mastering-deep-q-learning-with-pytorch-a-comprehensive-guide-a7e690d644fc
+        # as a reference for the training loop and the train_agent function from the project from last year
+
+        # TODO: from the transitions sampled_batch extract the states, actions, next_states and rewards
+        ...
+        # TODO: use the policy network to predict the q values for the next states
+        ...
+        # TODO: use the target value to predict the target q values for the next states
+        # target_q = reward + gamma * max_a' Q(s', a')
+        ...
+        # TODO: compute the loss (mse) between the predicted Q values and the target Q values
+        # loss.backward()
+        # self.optimizer.step()
+
+        # TODO: repeat for the number of epochs
+
+
+        for _ in range(epochs):
+            optimizer.zero_grad()
+
+            # TODO: compute the loss (mse) between the predicted Q values and the target Q values
+            # target_q is already given
+            
