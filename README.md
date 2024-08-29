@@ -42,12 +42,19 @@ Steps:
 - in act (callbacks), just do inference taking into account the exploration rate
 - consider dealing with invalid actions
 
-# Todos
+# Questions
 
 3. Ask if we are allowed to use gymnasium or stable baseline for the project?
 
 4. What is the difference between events and features? Why do we need both and why are not the events linked to the features 1:1?
    A: events are used to map to rewards which contribute to the calculation of the target q in the bellman equation which is then compared with the predicted Q of the policy network and the loss is used for training.
+
+# TODOS
+
+- [ ] implement new useful events and create functions to check if they are fullfilled. See restrictions in pdf and in Architecture
+- [ ] create a training script (bash) that train our agent with no gui trough the given 4 scenarios
+- [ ] write a function that saves and loads the model at the end of a training cycle (.pth or pickle whatever works)
+- [ ] in the train_setup and setup (callback) functions initialize and load the models, initialize the optimizer and loss function, initialize the ReplayMemory
 
 # Architecture
 

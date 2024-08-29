@@ -4,17 +4,21 @@ import random
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-from collections import deque
+from collections import deque, namedtuple
+
+
+Transition = namedtuple('Transition',
+                        ('state', 'action', 'next_state', 'reward'))
 
 
 class ReplayMemory():
-    def __init__(self, maxlen):
+    def __init__(self, maxlen: int):
         self.memory = deque([], maxlen=maxlen)
     
-    def append(self, transition):
+    def append(self, transition: Transition):
         self.memory.append(transition)
 
-    def sample(self, sample_size):
+    def sample(self, sample_size: int):
         return random.sample(self.memory, sample_size)
 
     def __len__(self):
