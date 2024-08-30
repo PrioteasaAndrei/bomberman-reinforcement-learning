@@ -55,6 +55,7 @@ Steps:
 - [ ] create a training script (bash) that train our agent with no gui trough the given 4 scenarios
 - [ ] write a function that saves and loads the model at the end of a training cycle (.pth or pickle whatever works)
 - [ ] in the train_setup and setup (callback) functions initialize and load the models, initialize the optimizer and loss function, initialize the ReplayMemory
+- [ ] add the distance between updating the target newtork and the policy network as a hyperparam and plot the network performance based on this param (try per episodes and per steps)
 
 # Architecture
 
