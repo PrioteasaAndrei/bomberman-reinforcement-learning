@@ -5,6 +5,8 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import deque, namedtuple
+from torch.utils.data import Dataset
+from tqdm import tqdm
 
 
 Transition = namedtuple('Transition',
@@ -65,33 +67,60 @@ class JointDQN(nn.Module):
             x = torch.zeros(1, *input_shape)
             x = self.feature_extractor(x)
             return x.view(1, -1).size(1)
+
+
+def train_step(self, batch_size: int, gamma: int, device: str):
+    '''
+    Perform a single training step on a batch of transitions.
+    Args:
+        batch_size: The number of transitions to sample from the replay memory
+        gamma: The discount factor
+        device: The device to run the training step on
+    '''
+ 
+    if len(self.memory) < batch_size:
+        return
+    transitions = self.memory.sample(batch_size)
+    # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
+    # detailed explanation). This converts batch-array of Transitions
+    # to Transition of batch-arrays.
+    batch = Transition(*zip(*transitions))
+
+    # Compute a mask of non-final states and concatenate the batch elements
+    # (a final state would've been the one after which simulation ended)
+    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+                                          batch.next_state)), device=device, dtype=torch.bool)
+    non_final_next_states = torch.cat([s for s in batch.next_state
+                                                if s is not None])
+    state_batch = torch.cat(batch.state)
+    action_batch = torch.cat(batch.action)
+    reward_batch = torch.cat(batch.reward)
+
+    # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+    # columns of actions taken. These are the actions which would've been taken
+    # for each batch state according to policy_net
+    state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+
+    # Compute V(s_{t+1}) for all next states.
+    # Expected values of actions for non_final_next_states are computed based
+    # on the "older" target_net; selecting their best reward with max(1).values
+    # This is merged based on the mask, such that we'll have either the expected
+    # state value or 0 in case the state was final.
+    # Reason for using the target network : https://stackoverflow.com/questions/54237327/why-is-a-target-network-required
+    next_state_values = torch.zeros(batch_size, device=device)
+    with torch.no_grad():
+        next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1).values
+    # Compute the expected Q values
+    expected_state_action_values = (next_state_values * gamma) + reward_batch
+
+    # Compute Huber loss
+    criterion = nn.SmoothL1Loss()
+    loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+
+    # Optimize the model
+    self.optimizer.zero_grad()
+    loss.backward()
+    # In-place gradient clipping
+    torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
+    self.optimizer.step()
         
-    def train(self, sampled_batch, optimizer, loss_fn=nn.MSELoss(), epochs=1):
-        '''
-        Train the model given a sample of the replay buffer
-        sampled_batch: list of Transitions
-        '''
-
-        # NOTE: use https://medium.com/@hkabhi916/mastering-deep-q-learning-with-pytorch-a-comprehensive-guide-a7e690d644fc
-        # as a reference for the training loop and the train_agent function from the project from last year
-
-        # TODO: from the transitions sampled_batch extract the states, actions, next_states and rewards
-        ...
-        # TODO: use the policy network to predict the q values for the next states
-        ...
-        # TODO: use the target value to predict the target q values for the next states
-        # target_q = reward + gamma * max_a' Q(s', a')
-        ...
-        # TODO: compute the loss (mse) between the predicted Q values and the target Q values
-        # loss.backward()
-        # self.optimizer.step()
-
-        # TODO: repeat for the number of epochs
-
-
-        for _ in range(epochs):
-            optimizer.zero_grad()
-
-            # TODO: compute the loss (mse) between the predicted Q values and the target Q values
-            # target_q is already given
-            
