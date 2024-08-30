@@ -1,10 +1,11 @@
 import os
 import pickle
 import random
-from .utils import *
 import numpy as np
 from .model import JointDQN
 import torch
+import logging
+import settings
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
@@ -28,7 +29,9 @@ def setup(self):
         # weights = np.random.rand(len(ACTIONS))
         # self.model = weights / weights.sum()
 
-        self.model = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger)
+        self.policy_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger)
+        self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger)
+        self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=0.001)
 
     else:
         self.logger.info("Loading model from saved state.")
@@ -46,12 +49,12 @@ def act(self, game_state: dict) -> str:
     :return: The action to take as a string.
     """
 
-    raw_features = state_to_raw_features(self.logger, game_state)
+    raw_features = state_to_features(game_state)
     expanded_tensor = torch.tensor(raw_features).unsqueeze(0)  # Shape becomes (1, 8, 17, 17)
     # Repeat the tensor along the batch dimension to create a shape of (64, 8, 17, 17)
     new_tensor = expanded_tensor.repeat(64, 1, 1, 1)  # Shape becomes (64, 8, 17, 17)
 
-    outputs = self.model(new_tensor.float())
+    outputs = self.policy_net(new_tensor.float())
     self.logger.info(f"Model outputs: {outputs.shape}")
 
     # todo Exploration vs exploitation
@@ -62,7 +65,10 @@ def act(self, game_state: dict) -> str:
         return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
 
     self.logger.debug("Querying model for action.")
-    return np.random.choice(ACTIONS, p=self.model)
+    # Exploitation TODO: actually do exploitation now its just testing
+    # return np.random.choice(ACTIONS, p=self.model)
+    return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
+
 
 
 def state_to_features(game_state: dict) -> np.array:
@@ -80,13 +86,61 @@ def state_to_features(game_state: dict) -> np.array:
     :return: np.array
     """
     # This is the dict before the game begins and after it ends
+    
+    '''
+    Transforms the game state dictionary into a multi-channel numpy array that will be fed to the 
+    feature discovery network
+    '''
     if game_state is None:
         return None
+    
+    game_map = game_state['field']
+    crates_map = np.where(game_map == 1, 1, 0)
+    walls_map = np.where(game_map == -1, 1, 0)
 
-    # For example, you could construct several channels of equal shape, ...
-    channels = []
-    channels.append(...)
-    # concatenate them as a feature tensor (they must have the same shape), ...
-    stacked_channels = np.stack(channels)
-    # and return them as a vector
-    return stacked_channels.reshape(-1)
+    explosion_map = game_state['explosion_map'] / settings.EXPLOSION_TIMER
+    assert explosion_map.min() >= 0 and explosion_map.max() <= 1
+
+    #  Create a map of the coins
+    coin_map = np.zeros(game_map.shape)
+    coin_coords = game_state['coins']
+    if len(coin_coords) > 0:
+        coin_rows, coin_cols = zip(*coin_coords)
+        coin_map[coin_rows, coin_cols] = 1
+
+    # Create a map of the bombs
+    bomb_map = np.zeros(game_map.shape)
+    bomb_coords = game_state['bombs']
+    if len(bomb_coords) > 0:
+        coords, bomb_times = zip(*bomb_coords)
+        coords = list(coords)
+        bomb_times = np.array(list(bomb_times))
+        bomb_rows, bomb_cols = zip(*coords)
+        # Normalize the bomb times
+        # We want high values (close to 1) for bombs that are about to explode and low values (close to 0) for bombs that are just placed
+        bomb_map[bomb_rows, bomb_cols] = (settings.BOMB_TIMER - bomb_times) / settings.BOMB_TIMER
+        assert bomb_map.min() >= 0 and bomb_map.max() <= 1
+
+    ## TODO: add info about their bomb possibility to the feature vector after cnn
+    other_agents = game_state['others']
+    other_agents_map = np.zeros_like(walls_map)
+    for _,_,_,(row, col) in other_agents:
+        other_agents_map[row, col] = 1
+
+    ## TODO: do something with the info for the bomb possibility
+    my_agent = game_state['self']
+    my_agent_map = np.zeros_like(walls_map)
+    my_agent_map[my_agent[3]] = 1
+
+    freetiles_map = np.zeros_like(walls_map)
+
+    cum_map = crates_map + walls_map + explosion_map + coin_map + bomb_map + freetiles_map + my_agent_map + other_agents_map
+    for i in range(freetiles_map.shape[0]):
+        for j in range(freetiles_map.shape[1]):
+            if cum_map[i,j] == 0:
+                freetiles_map[i,j] = 1
+
+    raw_features = np.stack([crates_map, walls_map, explosion_map, coin_map, bomb_map, freetiles_map, my_agent_map, other_agents_map]).astype(float)
+
+    # logger.info(f"Raw features shape: {raw_features.shape}")
+    return raw_features

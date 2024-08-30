@@ -6,6 +6,7 @@ from typing import List
 import events as e
 from .callbacks import state_to_features
 from .model import ReplayMemory
+from .model import train_step
 
 # This is only an example!
 Transition = namedtuple('Transition',
@@ -31,7 +32,6 @@ def setup_training(self):
     """
     # Example: Setup an array that will note transition tuples
     # (s, a, r, s')
-    self.transitions = deque(maxlen=TRANSITION_HISTORY_SIZE)
     self.memory = ReplayMemory(MEMORY_SIZE)
 
 
@@ -59,8 +59,11 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
         events.append(PLACEHOLDER_EVENT)
 
     # state_to_features is defined in callbacks.py
-    self.transitions.append(Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events)))
+    self.memory.append(Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events)))
 
+    if self.memory.can_provide_sample(4):
+        # Train your agent
+        train_step(self, 4, GAMMA, 'cpu')
 
 def end_of_round(self, last_game_state: dict, last_action: str, events: List[str]):
     """
@@ -76,11 +79,11 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     :param self: The same object that is passed to all of your callbacks.
     """
     self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
-    self.transitions.append(Transition(state_to_features(last_game_state), last_action, None, reward_from_events(self, events)))
+    self.memory.append(Transition(state_to_features(last_game_state), last_action, None, reward_from_events(self, events)))
 
     # Store the model
     with open("my-saved-model.pt", "wb") as file:
-        pickle.dump(self.model, file)
+        pickle.dump(self.policy_net, file)
 
 
 def reward_from_events(self, events: List[str]) -> int:
