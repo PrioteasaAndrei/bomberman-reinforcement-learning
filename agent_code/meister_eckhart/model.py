@@ -68,8 +68,8 @@ class JointDQN(nn.Module):
             x = self.feature_extractor(x)
             return x.view(1, -1).size(1)
 
-
-def train_step(self, batch_size: int, gamma: int, device: str):
+# This function is based on the following tutorial: https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
+def train_step(self, batch_size: int, gamma: int, device: torch.device):
     '''
     Perform a single training step on a batch of transitions.
     Args:
