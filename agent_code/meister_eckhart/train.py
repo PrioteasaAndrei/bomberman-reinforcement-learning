@@ -5,6 +5,7 @@ from typing import List
 
 import events as e
 from .callbacks import state_to_features
+from .model import ReplayMemory
 
 # This is only an example!
 Transition = namedtuple('Transition',
@@ -12,7 +13,9 @@ Transition = namedtuple('Transition',
 
 # Hyper parameters -- DO modify
 TRANSITION_HISTORY_SIZE = 3  # keep only ... last transitions
-RECORD_ENEMY_TRANSITIONS = 1.0  # record enemy transitions with probability ...
+RECORD_ENEMY_TRANSITIONS = 1.0 # record enemy transitions with probability ...
+GAMMA = 0.99
+MEMORY_SIZE = 10000
 
 # Events
 PLACEHOLDER_EVENT = "PLACEHOLDER"
@@ -29,6 +32,7 @@ def setup_training(self):
     # Example: Setup an array that will note transition tuples
     # (s, a, r, s')
     self.transitions = deque(maxlen=TRANSITION_HISTORY_SIZE)
+    self.memory = ReplayMemory(MEMORY_SIZE)
 
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
