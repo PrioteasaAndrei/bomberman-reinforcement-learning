@@ -36,7 +36,9 @@ def setup(self):
     else:
         self.logger.info("Loading model from saved state.")
         with open("my-saved-model.pt", "rb") as file:
-            self.model = pickle.load(file)
+            self.policy_net = pickle.load(file)
+        self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger)
+        self.target_net.load_state_dict(self.policy_net.state_dict())
 
 
 def act(self, game_state: dict) -> str:

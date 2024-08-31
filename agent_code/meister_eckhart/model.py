@@ -59,9 +59,9 @@ class JointDQN(nn.Module):
         
     def forward(self, x):
         features = self.feature_extractor(x)
-        self.logger.info(f"Features shape: {features.shape}")
+        # self.logger.info(f"Features shape: {features.shape}")
         action_distr = self.dqn(features)
-        self.logger.info(f"Action distribution shape: {action_distr.shape}")
+        # self.logger.info(f"Action distribution shape: {action_distr.shape}")
         return action_distr
     
     def feature_size(self, input_shape):
@@ -124,9 +124,9 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device):
 
     state_batch = torch.stack(list(map(torch.from_numpy,list(batch.state)))) 
     action_batch = torch.stack(list(list(map(action_to_tensor,batch.action))))
-    self.logger.info(f"Action batch shape: {action_batch.shape}")
+    # self.logger.info(f"Action batch shape: {action_batch.shape}")
     reward_batch = torch.stack(list(map(lambda x: torch.tensor([x]), batch.reward)))
-    self.logger.info(f"Reward batch shape: {reward_batch.shape}")
+    # self.logger.info(f"Reward batch shape: {reward_batch.shape}")
 
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
@@ -140,19 +140,14 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device):
     # state value or 0 in case the state was final.
     # Reason for using the target network : https://stackoverflow.com/questions/54237327/why-is-a-target-network-required
     next_state_values = torch.zeros(batch_size, device=device)
-    self.logger.info(f"Initial next state shape: {next_state_values.shape}")
     with torch.no_grad():
-        self.logger.info(f"Is this a scalar {self.target_net(non_final_next_states.float()).max(1).values}")
-        tbr = self.target_net(non_final_next_states.float()).max(1).values
-        assert tbr.shape == next_state_values.shape
-        next_state_values[non_final_mask] = self.target_net(non_final_next_states.float()).max(1).values ## TODO: this makes (4,4) because its not a scalar
+        next_state_values[non_final_mask] = self.target_net(non_final_next_states.float()).max(1).values
     # Compute the expected Q values
-    expected_state_action_values = (next_state_values * gamma) + reward_batch
+    expected_state_action_values = (next_state_values.view(-1, 1) * gamma) + reward_batch
 
     # Compute Huber loss
     criterion = nn.SmoothL1Loss()
-    self.logger.info(f"{state_action_values.shape} and {expected_state_action_values.shape}")
-    loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+    loss = criterion(state_action_values, expected_state_action_values)
 
     # Optimize the model
     self.optimizer.zero_grad()
