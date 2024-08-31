@@ -52,10 +52,17 @@ Steps:
 # TODOS
 
 - [ ] implement new useful events and create functions to check if they are fullfilled. See restrictions in pdf and in Architecture
-- [ ] create a training script (bash) that train our agent with no gui trough the given 4 scenarios
 - [ ] write a function that saves and loads the model at the end of a training cycle (.pth or pickle whatever works)
 - [ ] in the train_setup and setup (callback) functions initialize and load the models, initialize the optimizer and loss function, initialize the ReplayMemory
 - [ ] add the distance between updating the target newtork and the policy network as a hyperparam and plot the network performance based on this param (try per episodes and per steps)
+
+# Solved TODOs
+- [X] create a training script (bash) that train our agent with no gui trough the given 4 scenarios
+
+# Running Shell Script
+Before executing the script for the first time, run: `chmod 755 run_agent.sh`.
+Execute the script with: `./run_agent.sh`.
+Arguments can be directly changed in the script.
 
 # Architecture
 
