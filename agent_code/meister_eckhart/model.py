@@ -131,7 +131,7 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device):
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
     # for each batch state according to policy_net
-    state_action_values = self.policy_net(state_batch.float()).gather(1, action_batch)
+    state_action_values = self.policy_net(state_batch.float().to(device)).gather(1, action_batch.to(device))
 
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
@@ -141,9 +141,9 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device):
     # Reason for using the target network : https://stackoverflow.com/questions/54237327/why-is-a-target-network-required
     next_state_values = torch.zeros(batch_size, device=device)
     with torch.no_grad():
-        next_state_values[non_final_mask] = self.target_net(non_final_next_states.float()).max(1).values
+        next_state_values[non_final_mask] = self.target_net(non_final_next_states.float().to(device)).max(1).values
     # Compute the expected Q values
-    expected_state_action_values = (next_state_values.view(-1, 1) * gamma) + reward_batch
+    expected_state_action_values = (next_state_values.view(-1, 1) * gamma) + reward_batch.to(device)
 
     # Compute Huber loss
     criterion = nn.SmoothL1Loss()
@@ -158,3 +158,5 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device):
         
     self.logger.info(f"Loss: {loss.item()}")
     self.logger.info("Training step done.")
+
+    return loss.item()

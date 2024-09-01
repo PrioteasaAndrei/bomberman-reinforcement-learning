@@ -6,8 +6,9 @@ from .model import JointDQN
 import torch
 import logging
 import settings
-
+from .exploration_strategies import *
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
+TRAIN_DEVICE = 'mps'
 
 
 def setup(self):
@@ -29,9 +30,10 @@ def setup(self):
         # weights = np.random.rand(len(ACTIONS))
         # self.model = weights / weights.sum()
 
-        self.policy_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger)
-        self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger)
+        self.policy_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
+        self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=0.001)
+        self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=1000)
 
     else:
         self.logger.info("Loading model from saved state.")
@@ -52,24 +54,21 @@ def act(self, game_state: dict) -> str:
     """
 
     raw_features = state_to_features(game_state)
-    expanded_tensor = torch.tensor(raw_features).unsqueeze(0)  # Shape becomes (1, 8, 17, 17)
-    # Repeat the tensor along the batch dimension to create a shape of (64, 8, 17, 17)
-    new_tensor = expanded_tensor.repeat(64, 1, 1, 1)  # Shape becomes (64, 8, 17, 17)
+    raw_features = torch.tensor(raw_features).unsqueeze(0)  # Shape becomes (1, 8, 17, 17)
+    outputs = self.policy_net(raw_features.float().to(TRAIN_DEVICE))
+    outputs_list = outputs.detach().cpu().numpy().flatten().tolist()
+    self.logger.info(f"Model outputs: {outputs_list}")
 
-    outputs = self.policy_net(new_tensor.float())
-    self.logger.info(f"Model outputs: {outputs.shape}")
-
-    # todo Exploration vs exploitation
-    random_prob = .1
+    random_prob = self.epsilon_update_strategy.epsilon
+    self.epsilon_update_strategy.update_epsilon(3) # step is irelevant for linear decay
     if self.train and random.random() < random_prob:
         self.logger.debug("Choosing action purely at random.")
         # 80%: walk in any direction. 10% wait. 10% bomb.
         return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
 
     self.logger.debug("Querying model for action.")
-    # Exploitation TODO: actually do exploitation now its just testing
-    # return np.random.choice(ACTIONS, p=self.model)
-    return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
+    return np.random.choice(ACTIONS, p=outputs_list)
+    # return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
 
 
 
