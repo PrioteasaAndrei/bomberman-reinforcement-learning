@@ -3,12 +3,13 @@ from collections import namedtuple, deque
 import pickle
 from typing import List
 
-import events as e
+# import events as e
 from .callbacks import state_to_features
 from .model import ReplayMemory
 from .model import train_step
 from .exploration_strategies import *
 import matplotlib.pyplot as plt
+from .rewards import *
 
 # This is only an example!
 Transition = namedtuple('Transition',
@@ -18,11 +19,10 @@ Transition = namedtuple('Transition',
 RECORD_ENEMY_TRANSITIONS = 1.0 # record enemy transitions with probability ...
 GAMMA = 0.99
 MEMORY_SIZE = 10000
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 
 TRAIN_DEVICE = 'mps'
-# Events
-PLACEHOLDER_EVENT = "PLACEHOLDER"
+ROUND_TO_PLOT = 200
 
 
 def setup_training(self):
@@ -37,6 +37,9 @@ def setup_training(self):
     # (s, a, r, s')
     self.memory = ReplayMemory(MEMORY_SIZE)
     self.losses = []
+    self.scores = []
+
+    self.round_scores = 0
 
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
@@ -58,12 +61,14 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     """
     self.logger.debug(f'Encountered game event(s) {", ".join(map(repr, events))} in step {new_game_state["step"]}')
 
-    # Idea: Add your own events to hand out rewards
-    if ...:
-        events.append(PLACEHOLDER_EVENT)
+    # check for custom events
+    moved_towards_coin_reward(self, old_game_state, new_game_state, events)
 
     # state_to_features is defined in callbacks.py
     self.memory.append(Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events)))
+
+    self.round_scores += get_score(events)
+
 
     if self.memory.can_provide_sample(BATCH_SIZE):
         # Train your agent
@@ -86,13 +91,32 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     """
     self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
     self.memory.append(Transition(state_to_features(last_game_state), last_action, None, reward_from_events(self, events)))
+    self.scores.append(self.round_scores)
+    self.round_scores = 0
 
-    # Plot the losses
-    plt.plot(self.losses)
-    plt.xlabel("Training steps")
-    plt.ylabel("Loss")
-    plt.title("Training losses")
-    plt.savefig("logs/policy_net_losses" +".png")
+    # update target net
+    if last_game_state['round'] % 4 == 0:
+        # set the target net weights to the ones of the policy net
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+
+
+    if last_game_state['round'] == ROUND_TO_PLOT:
+        # Plot the losses
+        plt.plot(self.losses[::10])
+        plt.xlabel("Training steps")
+        plt.ylabel("Loss")
+        plt.title("Training losses")
+        plt.savefig("logs/policy_net_losses" +".png")
+        plt.clf()
+
+        ## number of scores higher that 4
+        big_scores = len([score for score in self.scores if score > 4])
+        # Plot the scores
+        plt.plot(self.scores)
+        plt.xlabel("Training steps")
+        plt.ylabel("Score")
+        plt.title("Scores. We have " + str(big_scores) + " scores higher than 4")
+        plt.savefig("logs/scores" +".png")
 
 
     # Store the model
@@ -107,14 +131,7 @@ def reward_from_events(self, events: List[str]) -> int:
     Here you can modify the rewards your agent get so as to en/discourage
     certain behavior.
     """
-    game_rewards = {
-        e.COIN_COLLECTED: 1,
-        e.KILLED_OPPONENT: 5,
-        e.INVALID_ACTION: -.1,
-        e.KILLED_SELF: -100,
-        e.GOT_KILLED: -50,
-        e.CRATE_DESTROYED: 0.3,
-    }
+    game_rewards = GAME_REWARDS
     reward_sum = 0
 
     for event in events:
@@ -122,3 +139,21 @@ def reward_from_events(self, events: List[str]) -> int:
             reward_sum += game_rewards[event]
     self.logger.info(f"Awarded {reward_sum} for events {', '.join(events)}")
     return reward_sum
+
+
+## TODO: rewrite
+def get_score(events: List[str]) -> int:
+    '''
+    tracks the true score
+
+    :param events: events that occured in game step
+    '''
+    true_game_rewards = {
+        e.COIN_COLLECTED: 1,
+        e.KILLED_OPPONENT: 5,
+    }
+    score = 0
+    for event in events:
+        if event in true_game_rewards:
+            score += true_game_rewards[event]
+    return score
