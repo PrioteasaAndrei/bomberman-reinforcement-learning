@@ -55,6 +55,9 @@ Steps:
 - [ ] write a function that saves and loads the model at the end of a training cycle (.pth or pickle whatever works)
 - [ ] add the distance between updating the target newtork and the policy network as a hyperparam and plot the network performance based on this param (try per episodes and per steps)
 - [ ] create a buffer of actions of the rule based agent to feed to our network for initial training where the agent is too weak to gather enough moves to learn from them
+- [ ] fix problem that softmax doeesnt output probs that sum up to 1 (very close to 1). Might be the dim argument in the softmax or some other numerical bullshit
+- [ ] start overwriting the necessary functions from the env for gymnasium / stable baseline
+- [ ] maybe generate training data from the rule based agent; be careful with rewards
 
 # Solved TODOs
 - [X] create a training script (bash) that train our agent with no gui trough the given 4 scenarios
@@ -73,3 +76,10 @@ https://medium.com/@hkabhi916/mastering-deep-q-learning-with-pytorch-a-comprehen
 
 We need to define events and check for them so that we can define more rewards so we can speed up the training in the bellman equation
 theory says that auxilliary rewards should only depend on the game states and not 2 on the actions leading there.
+
+params:
+they: 1740 - 20 000
+us: 24118
+
+scores:
+1

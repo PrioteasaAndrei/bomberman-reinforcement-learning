@@ -54,7 +54,7 @@ class JointDQN(nn.Module):
             nn.Linear(self.dqn_input_size, 64),
             nn.ReLU(),
             nn.Linear(64, num_actions),
-            nn.Softmax(dim=-1) 
+            nn.Softmax(dim=1) 
         )
         
     def forward(self, x):

@@ -9,7 +9,7 @@ import settings
 from .exploration_strategies import *
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 TRAIN_DEVICE = 'mps'
-
+LEARNING_RATE = 0.001
 
 def setup(self):
     """
@@ -32,7 +32,7 @@ def setup(self):
 
         self.policy_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
         self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
-        self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=0.001)
+        self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
         self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=1000)
 
     else:
@@ -57,6 +57,8 @@ def act(self, game_state: dict) -> str:
     raw_features = torch.tensor(raw_features).unsqueeze(0)  # Shape becomes (1, 8, 17, 17)
     outputs = self.policy_net(raw_features.float().to(TRAIN_DEVICE))
     outputs_list = outputs.detach().cpu().numpy().flatten().tolist()
+    # apply softmax to the outputs
+    outputs_list = np.exp(outputs_list) / np.sum(np.exp(outputs_list)) # HACK: this shouldnt be the case
     self.logger.info(f"Model outputs: {outputs_list}")
 
     random_prob = self.epsilon_update_strategy.epsilon
@@ -68,7 +70,6 @@ def act(self, game_state: dict) -> str:
 
     self.logger.debug("Querying model for action.")
     return np.random.choice(ACTIONS, p=outputs_list)
-    # return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
 
 
 
