@@ -32,7 +32,8 @@ def setup(self):
 
         self.policy_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
         self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
-        self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
+        if self.train:
+            self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
         self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=1000)
 
     else:
@@ -41,6 +42,7 @@ def setup(self):
             self.policy_net = pickle.load(file)
         self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger)
         self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=1000)
 
 
 def act(self, game_state: dict) -> str:
