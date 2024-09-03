@@ -48,7 +48,7 @@ def crate_destroyer_reward(self, game_state, events: List[str]) -> int:
 
 def get_blasts(bombs, field):
     """
-    Auxiliary function for getting the fields which will be blasted by bombs
+    Auxiliary function for getting the fields which will be blasted by bombs.
     """
     
     blasted_fields = []
