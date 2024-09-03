@@ -22,7 +22,7 @@ MEMORY_SIZE = 10000
 BATCH_SIZE = 64
 
 TRAIN_DEVICE = 'mps'
-ROUND_TO_PLOT = 200
+ROUND_TO_PLOT = 100
 
 
 def setup_training(self):
@@ -63,6 +63,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
 
     # check for custom events
     moved_towards_coin_reward(self, old_game_state, new_game_state, events)
+    avoided_bomb_reward(self, old_game_state, new_game_state, events)
 
     # state_to_features is defined in callbacks.py
     self.memory.append(Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events)))
