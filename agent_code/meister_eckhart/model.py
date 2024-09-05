@@ -39,10 +39,12 @@ class JointDQN(nn.Module):
         super(JointDQN, self).__init__()
         
         self.feature_extractor = nn.Sequential(
-            nn.Conv2d(in_channels=input_shape[0], out_channels=16, kernel_size=3, stride=2),
+            nn.Conv2d(in_channels=input_shape[0], out_channels=16, kernel_size=3),
             nn.ReLU(),
-            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=2),
+            nn.MaxPool2d(kernel_size=2),  # Pooling to reduce spatial dimensions
+            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),  # Pooling to reduce spatial dimensions
             nn.Flatten()
         )
 
@@ -71,6 +73,9 @@ class JointDQN(nn.Module):
             x = self.feature_extractor(x)
             return x.view(1, -1).size(1)
         
+    def number_of_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+        
 def action_to_tensor(action: str):
     '''
     Convert the action string to a tensor
@@ -88,10 +93,10 @@ def action_to_tensor(action: str):
     elif action == 'BOMB':
         return torch.tensor([5])
     else:
-        raise ValueError("Invalid action string")
+        raise ValueError("Invalid action string {}".format(action))
 
 # This function is based on the following tutorial: https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
-def train_step(self, batch_size: int, gamma: int, device: torch.device):
+def train_step(self, batch_size: int, gamma: int, device: torch.device, memory: ReplayMemory):
     '''
     Perform a single training step on a batch of transitions.
     Args:
@@ -102,10 +107,10 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device):
  
     self.logger.info("Training step...")
 
-    if len(self.memory) < batch_size:
+    if len(memory) < batch_size:
         return
     
-    transitions = self.memory.sample(batch_size)
+    transitions = memory.sample(batch_size)
     # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
     # detailed explanation). This converts batch-array of Transitions
     # to Transition of batch-arrays.
@@ -123,6 +128,7 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device):
     
 
     state_batch = torch.stack(list(map(torch.from_numpy,list(batch.state)))) 
+    self.logger.info(f"Actions: {batch.action}")
     action_batch = torch.stack(list(list(map(action_to_tensor,batch.action))))
     # self.logger.info(f"Action batch shape: {action_batch.shape}")
     reward_batch = torch.stack(list(map(lambda x: torch.tensor([x]), batch.reward)))

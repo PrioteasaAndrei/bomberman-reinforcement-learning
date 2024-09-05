@@ -470,16 +470,16 @@ class BombeRLeWorld(GenericWorld):
                     a.process_game_events(self.get_state_for_agent(a))
                 for enemy in self.active_agents:
                     if enemy is not a:
-                        pass
-                        # a.process_enemy_game_events(self.get_state_for_agent(enemy), enemy)
+                        # pass
+                        a.process_enemy_game_events(self.get_state_for_agent(enemy), enemy)
         for a in self.agents:
             if a.train:
                 if not a.dead:
                     a.wait_for_game_event_processing()
                 for enemy in self.active_agents:
                     if enemy is not a:
-                        pass
-                        # a.wait_for_enemy_game_event_processing()
+                        # pass
+                        a.wait_for_enemy_game_event_processing()
 
     def end_round(self):
         super().end_round()

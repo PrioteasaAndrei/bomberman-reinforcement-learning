@@ -51,17 +51,19 @@ Steps:
 
 # TODOS
 
-- [ ] implement new useful events and create functions to check if they are fullfilled. See restrictions in pdf and in Architecture
-- [ ] write a function that saves and loads the model at the end of a training cycle (.pth or pickle whatever works)
 - [ ] add the distance between updating the target newtork and the policy network as a hyperparam and plot the network performance based on this param (try per episodes and per steps)
-- [ ] create a buffer of actions of the rule based agent to feed to our network for initial training where the agent is too weak to gather enough moves to learn from them
+
 - [ ] fix problem that softmax doeesnt output probs that sum up to 1 (very close to 1). Might be the dim argument in the softmax or some other numerical bullshit
-- [ ] start overwriting the necessary functions from the env for gymnasium / stable baseline
-- [ ] maybe generate training data from the rule based agent; be careful with rewards
+
+# Working on TOODOS
+- [ ] implement new useful events and create functions to check if they are fullfilled. See restrictions in pdf and in Architecture
+- [ ] create a buffer of actions of the rule based agent to feed to our network for initial training where the agent is too weak to gather enough moves to learn from them
 
 # Solved TODOs
 - [X] create a training script (bash) that train our agent with no gui trough the given 4 scenarios
 - [X] in the train_setup and setup (callback) functions initialize and load the models, initialize the optimizer and loss function, initialize the ReplayMemory
+- [X] write a function that saves and loads the model at the end of a training cycle (.pth or pickle whatever works)
+
 
 # Running Shell Script
 Before executing the script for the first time, run: `chmod 755 run_agent.sh`.
@@ -76,10 +78,3 @@ https://medium.com/@hkabhi916/mastering-deep-q-learning-with-pytorch-a-comprehen
 
 We need to define events and check for them so that we can define more rewards so we can speed up the training in the bellman equation
 theory says that auxilliary rewards should only depend on the game states and not 2 on the actions leading there.
-
-params:
-they: 1740 - 20 000
-us: 24118
-
-scores:
-1

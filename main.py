@@ -11,6 +11,11 @@ from replay import ReplayWorld
 
 ESCAPE_KEYS = (pygame.K_q, pygame.K_ESCAPE)
 
+TRAINING_CONFIG_DICTIONARY =  {
+    "TRAIN_ON_RULE_BASED_TRANSITIONS": True,
+    "FINISHED_TRAINING_ON_RULE_BASED_BUFFER": False,
+    "training_scenario": "coin-heaven",
+}
 
 class Timekeeper:
     def __init__(self, interval):
@@ -110,6 +115,7 @@ def main(argv = None):
     # play_parser.add_argument("--single-process", default=False, action="store_true")
 
     play_parser.add_argument("--scenario", default="classic", choices=s.SCENARIOS)
+
 
     play_parser.add_argument("--seed", type=int, help="Reset the world's random number generator to a known number for reproducibility")
 
