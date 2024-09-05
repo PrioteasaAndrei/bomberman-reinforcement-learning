@@ -9,7 +9,10 @@ import settings
 from .exploration_strategies import *
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 TRAIN_DEVICE = 'mps'
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0001
+
+MODEL_SAVE_PATH = "my-saved-model-rule-based-coin-heaven.pt"
+
 
 def setup(self):
     """
@@ -25,22 +28,25 @@ def setup(self):
 
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
-    if self.train or not os.path.isfile("my-saved-model.pt"):
+
+    if self.train or not os.path.isfile(MODEL_SAVE_PATH):
         self.logger.info("Setting up model from scratch.")
         # weights = np.random.rand(len(ACTIONS))
         # self.model = weights / weights.sum()
 
         self.policy_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
         self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
+        self.logger.info(f"Number of parameters in the model: {self.policy_net.number_of_params()}")
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
         self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=1000)
 
     else:
         self.logger.info("Loading model from saved state.")
-        with open("my-saved-model.pt", "rb") as file:
+        with open(MODEL_SAVE_PATH, "rb") as file:
             self.policy_net = pickle.load(file)
-        self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger)
-        self.target_net.load_state_dict(self.policy_net.state_dict())
+        # there is no need for a target net during inference
+        # self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger)
+        # self.target_net.load_state_dict(self.policy_net.state_dict())
 
 
 def act(self, game_state: dict) -> str:
@@ -59,14 +65,19 @@ def act(self, game_state: dict) -> str:
     outputs_list = outputs.detach().cpu().numpy().flatten().tolist()
     # apply softmax to the outputs
     outputs_list = np.exp(outputs_list) / np.sum(np.exp(outputs_list)) # HACK: this shouldnt be the case
-    self.logger.info(f"Model outputs: {outputs_list}")
+    # self.logger.info(f"Model outputs: {outputs_list}")
 
-    random_prob = self.epsilon_update_strategy.epsilon
-    self.epsilon_update_strategy.update_epsilon(3) # step is irelevant for linear decay
-    if self.train and random.random() < random_prob:
-        self.logger.debug("Choosing action purely at random.")
-        # 80%: walk in any direction. 10% wait. 10% bomb.
-        return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
+    if self.train:
+        random_prob = self.epsilon_update_strategy.epsilon
+        self.epsilon_update_strategy.update_epsilon(3) # step is irelevant for linear decay
+        # self.logger.info(f"Epsilon: {random_prob}")
+        if random.random() < random_prob:
+            self.logger.debug("Choosing action purely at random.")
+            # 80%: walk in any direction. 10% wait. 10% bomb.
+            return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
+
+
+    ## TODO: move score measuring here
 
     self.logger.debug("Querying model for action.")
     return np.random.choice(ACTIONS, p=outputs_list)
