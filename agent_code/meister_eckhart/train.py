@@ -11,7 +11,7 @@ from .exploration_strategies import *
 import matplotlib.pyplot as plt
 from .rewards import *
 from tqdm import tqdm
-from callbacks import MODEL_SAVE_PATH
+from .callbacks import MODEL_SAVE_PATH
 
 # This is only an example!
 Transition = namedtuple('Transition',
@@ -21,9 +21,10 @@ Transition = namedtuple('Transition',
 RECORD_ENEMY_TRANSITIONS = 1.0 # record enemy transitions with probability ...
 GAMMA = 0.99
 MEMORY_SIZE = 10000
-MEMORY_SIZE_RULE_BASED = 10000
+MEMORY_SIZE_RULE_BASED = 10_000
 BATCH_SIZE = 128
 
+# the number of training steps
 TRAIN_EPOCHS = 10_000
 
 TRAIN_DEVICE = 'mps'
@@ -53,10 +54,11 @@ def setup_training(self):
 
     # load saved transitions
     if os.path.exists(SAVED_TRANISION_PATH):
-        self.rule_based_training_memory = load_transitions(SAVED_TRANISION_PATH)
+        self.rule_based_training_memory = load_transitions(self.logger,SAVED_TRANISION_PATH)
         self.logger.info("Loaded rule based training memory")
         FINISHED_TRAINING_ON_RULE_BASED_BUFFER = True
     else:
+        self.logger.info("Initializing replay memory for trainng based on rule agent.")
         self.rule_based_training_memory = ReplayMemory(MEMORY_SIZE_RULE_BASED)
 
     if len(self.rule_based_training_memory) > 0 and TRAIN_ON_RULE_BASED_TRANSITIONS:
@@ -65,6 +67,12 @@ def setup_training(self):
         for epoch in tqdm(range(TRAIN_EPOCHS)):
             loss = train_step(self, BATCH_SIZE, GAMMA, TRAIN_DEVICE,self.rule_based_training_memory)
             self.losses.append(loss)
+
+            # update target net
+
+            if epoch % 10 == 0:
+                # set the target net weights to the ones of the policy net
+                self.target_net.load_state_dict(self.policy_net.state_dict())
             
         
         plt.plot(self.losses[::10])
@@ -100,6 +108,9 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     :param events: The events that occurred when going from  `old_game_state` to `new_game_state`
     """
     # self.logger.debug(f'Encountered game event(s) {", ".join(map(repr, events))} in step {new_game_state["step"]}')
+
+    self.logger.info("Number of states in the replay memory: {}".format(len(self.rule_based_training_memory)))
+
 
     if not FINISHED_TRAINING_ON_RULE_BASED_BUFFER:
         # check for custom events
@@ -204,13 +215,16 @@ def get_score(events: List[str]) -> int:
             score += true_game_rewards[event]
     return score
 
+'''
+# NOTE: run with continue without training to get all the transitions
+'''
 def enemy_game_events_occurred(self, enemy_name: str, old_enemy_game_state: dict, enemy_action: str, new_enemy_game_state: dict, enemy_events: List[str]):
    '''
    Function signature taken from the discord channel of the course.
 
    '''
    
-   if enemy_name == 'rule_based_agent_0':
+   if enemy_name == 'rule_based_agent': # NOTE: this has to be changed in coin heavn to rule_based_agent
         self.logger.debug(f'xxxxx Enemy {enemy_name} has events: {enemy_events} and has taken action {enemy_action}')
         if enemy_action is not None: # when the enemy is dead
             self.rule_based_training_memory.append(Transition(state_to_features(old_enemy_game_state), enemy_action, state_to_features(new_enemy_game_state), reward_from_events(self, enemy_events)))
@@ -223,12 +237,13 @@ def save_transitions(transitions: List[Transition],path: str):
     with open(path, 'wb') as file:
         pickle.dump(transitions, file)
 
-def load_transitions(path: str) -> List[Transition]:
+def load_transitions(logger,path: str) -> ReplayMemory:
     '''
     Load transitions from the replay memory
     '''
     with open(path, 'rb') as file:
         buffer = pickle.load(file)
+        logger.info(f"Loaded {len(buffer)} transitions. Type of buffer: {type(buffer)}")
         return buffer
     
 

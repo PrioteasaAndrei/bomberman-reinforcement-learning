@@ -11,7 +11,7 @@ ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 TRAIN_DEVICE = 'mps'
 LEARNING_RATE = 0.0001
 
-MODEL_SAVE_PATH = "my-saved-model-rule-based-coin-heaven.pt"
+MODEL_SAVE_PATH = "saved_models/my-saved-model-rule-based-coin-heaven.pt"
 
 
 def setup(self):
@@ -66,6 +66,8 @@ def act(self, game_state: dict) -> str:
     # apply softmax to the outputs
     outputs_list = np.exp(outputs_list) / np.sum(np.exp(outputs_list)) # HACK: this shouldnt be the case
     # self.logger.info(f"Model outputs: {outputs_list}")
+
+    # self.logger.info("Number of states in the replay memory: {}".format(len(self.rule_based_training_memory)))
 
     if self.train:
         random_prob = self.epsilon_update_strategy.epsilon
