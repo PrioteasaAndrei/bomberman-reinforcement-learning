@@ -27,7 +27,7 @@ BATCH_SIZE = 128
 TRAIN_EPOCHS = 10_000
 
 TRAIN_DEVICE = 'mps'
-ROUND_TO_PLOT = 200
+ROUND_TO_PLOT = 100
 
 TRAIN_ON_RULE_BASED_TRANSITIONS = True
 FINISHED_TRAINING_ON_RULE_BASED_BUFFER = False
@@ -104,6 +104,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     if not FINISHED_TRAINING_ON_RULE_BASED_BUFFER:
         # check for custom events
         moved_towards_coin_reward(self, old_game_state, new_game_state, events)
+        avoided_bomb_reward(self, old_game_state, new_game_state, events)
 
         self.memory.append(Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events)))
 
