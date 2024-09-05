@@ -66,29 +66,22 @@ def get_blasts(bombs, field):
         blasted_fields.append(bomb.get_blast_coords(field))
     return blasted_fields
 
-def avoided_self_bomb_reward(self, game_state, events: List[str]) -> int:
+def avoided_self_bomb_reward(self, game_state, events: List[str]):
     """
     Rewards the agent for avoiding its own bomb.
     """
-    if(e.BOMB_EXPLODED in events and 'KILLED_SELF' not in events):
-        return AVOIDED_SELF_BOMB_REWARD
-    return
+    if(e.BOMB_EXPLODED in events and e.KILLED_SELF not in events):
+        events.append(AVOIDED_SELF_BOMB)
 
 
-def into_out_of_blast(self, old_game_state, new_game_state):
+def into_out_of_blast(self, old_game_state, new_game_state, events: List[str]):
     """
-    Rewards the agent for getting 
+    Rewards the agent for getting out of the future blast of its own bomb and penalizes for getting into the future blast of its own bomb.
     """
     if(old_game_state['self'][3] in get_blasts(old_game_state['bombs'], old_game_state['field']) and new_game_state['self'][3] not in get_blasts(new_game_state['bombs'], new_game_state['field']) ):
-        return OUT_OF_BLAST_REWARD
+        events.append(OUT_OF_BLAST)
     if(old_game_state['self'][3] not in get_blasts(old_game_state['bombs'], old_game_state['field']) and new_game_state['self'][3] in get_blasts(new_game_state['bombs'], new_game_state['field']) ):
-        return INTO_BLAST_REWARD
-    return
-
-
-  
-
-
+        events.append(INTO_BLAST)
 
 
 def bfs_to_objective(current_position: Tuple[int, int], objective_coordinates: List[Tuple[int,int]], game_map) -> Tuple[int, int]:
@@ -134,10 +127,8 @@ def moved_towards_coin_reward(self, old_game_state, game_state, events: List[str
     new_distance = np.linalg.norm(np.array(game_state['self'][3]) - np.array(new_closest_coin_coord), ord=1)
 
     if old_distance < new_distance and not e.COIN_COLLECTED in events:
-        return events.append(MOVED_FURTHER_FROM_COIN)
+        events.append(MOVED_FURTHER_FROM_COIN)
     elif (old_distance > new_distance and not e.COIN_COLLECTED in events):
-        return events.append(MOVED_CLOSER_TO_COIN)
-    else:
-        return
+        events.append(MOVED_CLOSER_TO_COIN)
 
     
