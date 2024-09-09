@@ -71,15 +71,15 @@ class JointDQN(nn.Module):
     NOTE: maverick has only 1740 parameters
 
     '''
-    def __init__(self,input_shape=(8,17,17),num_actions=6,logger=None):
+    def __init__(self,input_shape=(8,5,5),num_actions=6,logger=None):
         super(JointDQN, self).__init__()
         
         self.feature_extractor = nn.Sequential(
             nn.Conv2d(in_channels=input_shape[0], out_channels=16, kernel_size=3),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),  # Pooling to reduce spatial dimensions
-            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3),
-            nn.ReLU(),
+            # nn.MaxPool2d(kernel_size=2),  # Pooling to reduce spatial dimensions
+            # nn.Conv2d(in_channels=16, out_channels=32, kernel_size=2),
+            # nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),  # Pooling to reduce spatial dimensions
             nn.Flatten()
         )
@@ -97,6 +97,7 @@ class JointDQN(nn.Module):
         
     def forward(self, x):
         features = self.feature_extractor(x)
+        self.logger.info(f"Features shape in model: {features.shape}")
         action_distr = self.dqn(features)
         return action_distr
     
@@ -104,7 +105,9 @@ class JointDQN(nn.Module):
         # Helper function to calculate the flattened size of CNN output
         with torch.no_grad():
             x = torch.zeros(1, *input_shape)
+            
             x = self.feature_extractor(x)
+            self.logger.info(f"Input shape: {x.shape}")
             return x.view(1, -1).size(1)
         
     def number_of_params(self):
