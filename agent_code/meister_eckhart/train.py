@@ -28,7 +28,7 @@ BATCH_SIZE = 128
 TRAIN_EPOCHS = 10_000
 
 TRAIN_DEVICE = 'mps'
-ROUND_TO_PLOT = 100
+ROUND_TO_PLOT = 5000 #default 200
 
 TRAIN_ON_RULE_BASED_TRANSITIONS = True
 FINISHED_TRAINING_ON_RULE_BASED_BUFFER = False
@@ -110,6 +110,15 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     # self.logger.debug(f'Encountered game event(s) {", ".join(map(repr, events))} in step {new_game_state["step"]}')
 
     self.logger.info("Number of states in the replay memory: {}".format(len(self.rule_based_training_memory)))
+    # check for custom events
+    moved_towards_coin_reward(self, old_game_state, new_game_state, events)
+    avoided_self_bomb_reward(self, old_game_state, events)
+    into_out_of_blast(self, old_game_state, new_game_state, events)
+
+    # state_to_features is defined in callbacks.py
+    self.memory.append(Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events)))
+
+    self.round_scores += get_score(events)
 
 
     if not FINISHED_TRAINING_ON_RULE_BASED_BUFFER:
