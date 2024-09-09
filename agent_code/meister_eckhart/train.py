@@ -50,7 +50,6 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     """
     # self.logger.debug(f'Encountered game event(s) {", ".join(map(repr, events))} in step {new_game_state["step"]}')
 
-    self.logger.info("Number of states in the replay memory: {}".format(len(self.rule_based_training_memory)))
     # check for custom events
     moved_towards_coin_reward(self, old_game_state, new_game_state, events)
     avoided_self_bomb_reward(self, old_game_state, events)
@@ -91,7 +90,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         # set the target net weights to the ones of the policy net
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
-    self.logger.info(f"Rule based agent buffer has {len(self.rule_based_training_memory)} transitions")
 
     if last_game_state['round'] == ROUND_TO_PLOT:
         # Plot the losses
@@ -118,6 +116,22 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
                 pickle.dump(self.policy_net, file)
 
   
+'''
+# NOTE: run with continue without training to get all the transitions
+'''
+def enemy_game_events_occurred(self, enemy_name: str, old_enemy_game_state: dict, enemy_action: str, new_enemy_game_state: dict, enemy_events: List[str]):
+   '''
+   Function signature taken from the discord channel of the course.
+
+   '''
+   pass
+   
+#    if enemy_name == 'rule_based_agent': # NOTE: this has to be changed in coin heavn to rule_based_agent
+#         self.logger.debug(f'xxxxx Enemy {enemy_name} has events: {enemy_events} and has taken action {enemy_action}')
+#         if enemy_action is not None: # when the enemy is dead
+#             self.rule_based_training_memory.append(Transition(state_to_features(old_enemy_game_state), enemy_action, state_to_features(new_enemy_game_state), reward_from_events(self, enemy_events)))
+
+
 def reward_from_events(self, events: List[str]) -> int:
     """
     *This is not a required function, but an idea to structure your code.*
@@ -135,6 +149,7 @@ def reward_from_events(self, events: List[str]) -> int:
     return reward_sum
 
 
+
 def get_score(events: List[str]) -> int:
     '''
     tracks the true score we use for evaluating our agents
@@ -150,6 +165,7 @@ def get_score(events: List[str]) -> int:
         if event in true_game_rewards:
             score += true_game_rewards[event]
     return score
+
 
 
 def save_transitions(transitions: List[Transition],path: str):

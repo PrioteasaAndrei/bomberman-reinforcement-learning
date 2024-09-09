@@ -7,10 +7,7 @@ import torch.nn.functional as F
 from collections import deque, namedtuple
 from torch.utils.data import Dataset
 from tqdm import tqdm
-
-
-Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
+from .config import *
 
 
 class ReplayMemory():

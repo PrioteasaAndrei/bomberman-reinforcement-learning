@@ -7,12 +7,7 @@ import torch
 import logging
 import settings
 from .exploration_strategies import *
-ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
-TRAIN_DEVICE = 'mps'
-LEARNING_RATE = 0.0001
-
-MODEL_SAVE_PATH = "saved_models/my-saved-model-rule-based-coin-heaven.pt"
-
+from .config import *
 
 def setup(self):
     """
@@ -31,8 +26,6 @@ def setup(self):
 
     if self.train or not os.path.isfile(MODEL_SAVE_PATH):
         self.logger.info("Setting up model from scratch.")
-        # weights = np.random.rand(len(ACTIONS))
-        # self.model = weights / weights.sum()
 
         self.policy_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
         self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
@@ -44,10 +37,6 @@ def setup(self):
         self.logger.info("Loading model from saved state.")
         with open(MODEL_SAVE_PATH, "rb") as file:
             self.policy_net = pickle.load(file)
-        # there is no need for a target net during inference
-        # self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger)
-        # self.target_net.load_state_dict(self.policy_net.state_dict())
-
 
 def act(self, game_state: dict) -> str:
     """
@@ -65,10 +54,7 @@ def act(self, game_state: dict) -> str:
     outputs_list = outputs.detach().cpu().numpy().flatten().tolist()
     # apply softmax to the outputs
     outputs_list = np.exp(outputs_list) / np.sum(np.exp(outputs_list)) # HACK: this shouldnt be the case
-    # self.logger.info(f"Model outputs: {outputs_list}")
-
-    # self.logger.info("Number of states in the replay memory: {}".format(len(self.rule_based_training_memory)))
-
+ 
     if self.train:
         random_prob = self.epsilon_update_strategy.epsilon
         self.epsilon_update_strategy.update_epsilon(3) # step is irelevant for linear decay
@@ -80,7 +66,6 @@ def act(self, game_state: dict) -> str:
 
 
     ## TODO: move score measuring here
-
     self.logger.debug("Querying model for action.")
     return np.random.choice(ACTIONS, p=outputs_list)
 

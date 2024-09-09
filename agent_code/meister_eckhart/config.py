@@ -35,4 +35,4 @@ SAVE_MODEL_EVERY = 1000
 UPDATE_TARGET_EVERY = 10
 
 SCENARIO = "coin_heaven"
-SAVED_TRANISION_PATH = 'rule_based_transitions/rule_based_training_memory_' + SCENARIO + '.pt'
+
