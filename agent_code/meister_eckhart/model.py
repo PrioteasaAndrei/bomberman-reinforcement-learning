@@ -26,8 +26,18 @@ class ReplayMemory():
     def can_provide_sample(self, sample_size: int):
         return len(self.memory) >= sample_size
 
+def create_model(input_shape, num_actions, logger, model_type: str):
+    if model_type == "JointDQN":
+        return JointDQN(input_shape=input_shape, num_actions=num_actions, logger=logger)
+    elif model_type == "SimpleDQN":
+        return SimpleDQN(input_shape=input_shape, num_actions=num_actions, logger=logger)
+    else:
+        raise ValueError("Invalid model type {}".format(model_type))
 
-class JointDQN(nn.Module):
+class SimpleDQN(nn.Module):
+    '''
+    Number of parameters: 384 + input_shape_vectorized * 64
+    '''
     def __init__(self,input_shape=(8,17,17),num_actions=6,logger=None):
         super(JointDQN, self).__init__()
 
@@ -35,11 +45,9 @@ class JointDQN(nn.Module):
        
         self.net = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(self.vectorized_shape, 128),
+            nn.Linear(self.vectorized_shape, 64),
             nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, num_actions),
+            nn.Linear(64, num_actions),
             nn.Softmax(dim=1)
         )
 
@@ -51,69 +59,74 @@ class JointDQN(nn.Module):
         
     
 
-# class JointDQN(nn.Module):
-#     '''
-#     Modify the kernel size and stride to obtain the desired feature space size
-#     '''
-#     def __init__(self,input_shape=(8,17,17),num_actions=6,logger=None):
-#         super(JointDQN, self).__init__()
+class JointDQN(nn.Module):
+    '''
+    Network dimensions:
+    input: 8x17x17
+    feature_space: 128
+    total number of parameters in the feature extractor: 5808 
+    total number of parameters in the dqn: 8646 
+    total params: 14454
+
+    NOTE: maverick has only 1740 parameters
+
+    '''
+    def __init__(self,input_shape=(8,17,17),num_actions=6,logger=None):
+        super(JointDQN, self).__init__()
         
-#         self.feature_extractor = nn.Sequential(
-#             nn.Conv2d(in_channels=input_shape[0], out_channels=16, kernel_size=3),
-#             nn.ReLU(),
-#             nn.MaxPool2d(kernel_size=2),  # Pooling to reduce spatial dimensions
-#             nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3),
-#             nn.ReLU(),
-#             nn.MaxPool2d(kernel_size=2),  # Pooling to reduce spatial dimensions
-#             nn.Flatten()
-#         )
+        self.feature_extractor = nn.Sequential(
+            nn.Conv2d(in_channels=input_shape[0], out_channels=16, kernel_size=3),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),  # Pooling to reduce spatial dimensions
+            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),  # Pooling to reduce spatial dimensions
+            nn.Flatten()
+        )
 
-#         self.logger = logger
+        self.logger = logger
 
-#         self.dqn_input_size = self.feature_size(input_shape)
+        self.dqn_input_size = self.feature_size(input_shape)
 
-#         self.dqn = nn.Sequential(
-#             nn.Linear(self.dqn_input_size, 64),
-#             nn.ReLU(),
-#             nn.Linear(64, num_actions),
-#             nn.Softmax(dim=1) 
-#         )
+        self.dqn = nn.Sequential(
+            nn.Linear(self.dqn_input_size, 64),
+            nn.ReLU(),
+            nn.Linear(64, num_actions),
+            nn.Softmax(dim=1) 
+        )
         
-#     def forward(self, x):
-#         features = self.feature_extractor(x)
-#         # self.logger.info(f"Features shape: {features.shape}")
-#         action_distr = self.dqn(features)
-#         # self.logger.info(f"Action distribution shape: {action_distr.shape}")
-#         return action_distr
+    def forward(self, x):
+        features = self.feature_extractor(x)
+        action_distr = self.dqn(features)
+        return action_distr
     
-#     def feature_size(self, input_shape):
-#         # Helper function to calculate the flattened size of CNN output
-#         with torch.no_grad():
-#             x = torch.zeros(1, *input_shape)
-#             x = self.feature_extractor(x)
-#             return x.view(1, -1).size(1)
+    def feature_size(self, input_shape):
+        # Helper function to calculate the flattened size of CNN output
+        with torch.no_grad():
+            x = torch.zeros(1, *input_shape)
+            x = self.feature_extractor(x)
+            return x.view(1, -1).size(1)
         
-#     def number_of_params(self):
-#         return sum(p.numel() for p in self.parameters() if p.requires_grad)
+    def number_of_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
         
 def action_to_tensor(action: str):
     '''
     Convert the action string to a tensor
     '''
-    if action == 'UP':
-        return torch.tensor([0])
-    elif action == 'RIGHT':
-        return torch.tensor([1])
-    elif action == 'DOWN':
-        return torch.tensor([2])
-    elif action == 'LEFT':
-        return torch.tensor([3])
-    elif action == 'WAIT':
-        return torch.tensor([4])
-    elif action == 'BOMB':
-        return torch.tensor([5])
-    else:
-        raise ValueError("Invalid action string {}".format(action))
+
+    ## get index of action in ACTION and return it as tensor
+
+    try:
+        # Find the index of the target in the list
+        index = ACTIONS.index(action)
+    except ValueError:
+        # If the target is not found, handle the exception (optional)
+        raise ValueError(f"The target '{action}' is not found in the list.")
+    
+    # Convert the index to a tensor
+    index_tensor = torch.tensor(index)
+    return index_tensor
 
 # This function is based on the following tutorial: https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
 def train_step(self, batch_size: int, gamma: int, device: torch.device, memory: ReplayMemory):

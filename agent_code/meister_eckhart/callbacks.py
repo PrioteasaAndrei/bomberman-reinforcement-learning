@@ -2,7 +2,7 @@ import os
 import pickle
 import random
 import numpy as np
-from .model import JointDQN
+from .model import *
 import torch
 import logging
 import settings
@@ -26,9 +26,9 @@ def setup(self):
 
     if self.train or not os.path.isfile(MODEL_SAVE_PATH):
         self.logger.info("Setting up model from scratch.")
+        self.policy_net = create_model(input_shape=(8, 17, 17), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
+        self.target_net = create_model(input_shape=(8, 17, 17), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
 
-        self.policy_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
-        self.target_net = JointDQN(input_shape=(8, 17, 17), num_actions=6, logger=self.logger).to(TRAIN_DEVICE)
         self.logger.info(f"Number of parameters in the model: {self.policy_net.number_of_params()}")
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
         self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=1000)
@@ -48,13 +48,17 @@ def act(self, game_state: dict) -> str:
     :return: The action to take as a string.
     """
 
-    raw_features = state_to_features(game_state)
+    raw_features = state_to_features(game_state,self.logger)
     raw_features = torch.tensor(raw_features).unsqueeze(0)  # Shape becomes (1, 8, 17, 17)
+    self.logger.debug(f"Raw features shape: {raw_features.shape}")
     outputs = self.policy_net(raw_features.float().to(TRAIN_DEVICE))
     outputs_list = outputs.detach().cpu().numpy().flatten().tolist()
     # apply softmax to the outputs
     outputs_list = np.exp(outputs_list) / np.sum(np.exp(outputs_list)) # HACK: this shouldnt be the case
  
+    self.logger.info(f"Number of parameters in the model: {self.policy_net.number_of_params()}")
+    self.logger.info(f"Feature space size: {self.policy_net.dqn_input_size}")
+
     if self.train:
         random_prob = self.epsilon_update_strategy.epsilon
         self.epsilon_update_strategy.update_epsilon(3) # step is irelevant for linear decay
@@ -65,13 +69,29 @@ def act(self, game_state: dict) -> str:
             return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
 
 
+    ## TODO: move inference here, there is no point in doing it if we chose a random action
     ## TODO: move score measuring here
     self.logger.debug("Querying model for action.")
     return np.random.choice(ACTIONS, p=outputs_list)
 
 
+# TODO: fix this
+def crop_map(map, agent_pos, crop_size,logger=None):
+    """
+    Crop the map around the agent position. The agent is in the middle of the cropped map. The cropped map is a square.
+    """
+    x, y = agent_pos
+    x_min = max(1, x - crop_size // 2 + 1)
+    x_max = min(map.shape[0], x + crop_size // 2)
+    y_min = max(1, y - crop_size // 2 + 1)
+    y_max = min(map.shape[1], y + crop_size // 2)
 
-def state_to_features(game_state: dict) -> np.array:
+    logger.info(f"Agent position: {agent_pos}")
+    logger.info(f"x min: {x_min}, x max: {x_max}, y min: {y_min}, y max: {y_max}")
+
+    return map[x_min:x_max+1, y_min:y_max+1] #TODO: check if +1 is actually fine
+
+def state_to_features(game_state: dict, logger=None) -> np.array:
     """
     *This is not a required function, but an idea to structure your code.*
 
@@ -140,7 +160,27 @@ def state_to_features(game_state: dict) -> np.array:
             if cum_map[i,j] == 0:
                 freetiles_map[i,j] = 1
 
+    # crop the maps around the agent position
+    logger.info("-----------------")
+    crates_map = crop_map(crates_map, my_agent[3], 7,logger)
+    logger.info(f"Crates map shape: {crates_map.shape}")
+    walls_map = crop_map(walls_map, my_agent[3], 7,logger)
+    logger.info(f"Walls map shape: {walls_map.shape}")
+    explosion_map = crop_map(explosion_map, my_agent[3], 7,logger)
+    logger.info(f"Explosion map shape: {explosion_map.shape}")
+    coin_map = crop_map(coin_map, my_agent[3], 7,logger)
+    logger.info(f"Coin map shape: {coin_map.shape}")
+    bomb_map = crop_map(bomb_map, my_agent[3], 7,logger)
+    logger.info(f"Bomb map shape: {bomb_map.shape}")
+    freetiles_map = crop_map(freetiles_map, my_agent[3], 7,logger)
+    logger.info(f"Freetiles map shape: {freetiles_map.shape}")
+    my_agent_map = crop_map(my_agent_map, my_agent[3], 7,logger)
+    logger.info(f"My agent map shape: {my_agent_map.shape}")
+    other_agents_map = crop_map(other_agents_map, my_agent[3], 7,logger)
+    logger.info(f"Other agents map shape: {other_agents_map.shape}")
+    logger.info("-----------------")
+
+
     raw_features = np.stack([crates_map, walls_map, explosion_map, coin_map, bomb_map, freetiles_map, my_agent_map, other_agents_map]).astype(float)
 
-    # logger.info(f"Raw features shape: {raw_features.shape}")
     return raw_features
