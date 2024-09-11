@@ -38,7 +38,7 @@ class SimpleDQN(nn.Module):
     '''
     Number of parameters: 384 + input_shape_vectorized * 64
     '''
-    def __init__(self,input_shape=(8,17,17),num_actions=6,logger=None):
+    def __init__(self,input_shape=(8,7,7),num_actions=6,logger=None):
         super(JointDQN, self).__init__()
 
         self.vectorized_shape = math.prod(input_shape)
@@ -71,7 +71,7 @@ class JointDQN(nn.Module):
     NOTE: maverick has only 1740 parameters
 
     '''
-    def __init__(self,input_shape=(8,5,5),num_actions=6,logger=None):
+    def __init__(self,input_shape=(8,7,7),num_actions=6,logger=None):
         super(JointDQN, self).__init__()
         
         self.feature_extractor = nn.Sequential(

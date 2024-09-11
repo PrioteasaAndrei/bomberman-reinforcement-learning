@@ -26,8 +26,8 @@ def setup(self):
 
     if self.train or not os.path.isfile(MODEL_SAVE_PATH):
         self.logger.info("Setting up model from scratch.")
-        self.policy_net = create_model(input_shape=(8, 5, 5), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
-        self.target_net = create_model(input_shape=(8, 5, 5), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
+        self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
+        self.target_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
 
         self.logger.info(f"Number of parameters in the model: {self.policy_net.number_of_params()}")
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
@@ -80,11 +80,17 @@ def crop_map(map, agent_pos, crop_size,logger=None):
     """
     Crop the map around the agent position. The agent is in the middle of the cropped map. The cropped map is a square.
     """
+
     x, y = agent_pos
     x_min = max(0, x - crop_size // 2 )
-    x_max = min(map.shape[0], x + crop_size // 2)
+    #x_max = min(map.shape[0], x + crop_size // 2)
+    x_max = min(map.shape[0]-1, x_min + crop_size)
+    x_min = x_max + 1 - crop_size
+
     y_min = max(0, y - crop_size // 2)
-    y_max = min(map.shape[1], y + crop_size // 2)
+    #y_max = min(map.shape[1], y + crop_size // 2)
+    y_max = min(map.shape[1]-1, y_min + crop_size)
+    y_min = y_max + 1 - crop_size
 
     logger.info(f"Agent position: {agent_pos}")
     logger.info(f"x min: {x_min}, x max: {x_max}, y min: {y_min}, y max: {y_max}")
@@ -160,25 +166,26 @@ def state_to_features(game_state: dict, logger=None) -> np.array:
             if cum_map[i,j] == 0:
                 freetiles_map[i,j] = 1
 
-    # crop the maps around the agent position
-    # logger.info("-----------------")
-    # crates_map = crop_map(crates_map, my_agent[3], 7,logger)
-    # logger.info(f"Crates map shape: {crates_map.shape}")
-    # walls_map = crop_map(walls_map, my_agent[3], 7,logger)
-    # logger.info(f"Walls map shape: {walls_map.shape}")
-    # explosion_map = crop_map(explosion_map, my_agent[3], 7,logger)
-    # logger.info(f"Explosion map shape: {explosion_map.shape}")
-    # coin_map = crop_map(coin_map, my_agent[3], 7,logger)
-    # logger.info(f"Coin map shape: {coin_map.shape}")
-    # bomb_map = crop_map(bomb_map, my_agent[3], 7,logger)
-    # logger.info(f"Bomb map shape: {bomb_map.shape}")
-    # freetiles_map = crop_map(freetiles_map, my_agent[3], 7,logger)
-    # logger.info(f"Freetiles map shape: {freetiles_map.shape}")
-    # my_agent_map = crop_map(my_agent_map, my_agent[3], 7,logger)
-    # logger.info(f"My agent map shape: {my_agent_map.shape}")
-    # other_agents_map = crop_map(other_agents_map, my_agent[3], 7,logger)
-    # logger.info(f"Other agents map shape: {other_agents_map.shape}")
-    # logger.info("-----------------")
+    #crop the maps around the agent position
+    crop_size = 7
+    logger.info("-----------------")
+    crates_map = crop_map(crates_map, my_agent[3], crop_size,logger)
+    logger.info(f"Crates map shape: {crates_map.shape}")
+    walls_map = crop_map(walls_map, my_agent[3], crop_size,logger)
+    logger.info(f"Walls map shape: {walls_map.shape}")
+    explosion_map = crop_map(explosion_map, my_agent[3], crop_size,logger)
+    logger.info(f"Explosion map shape: {explosion_map.shape}")
+    coin_map = crop_map(coin_map, my_agent[3], crop_size,logger)
+    logger.info(f"Coin map shape: {coin_map.shape}")
+    bomb_map = crop_map(bomb_map, my_agent[3], crop_size,logger)
+    logger.info(f"Bomb map shape: {bomb_map.shape}")
+    freetiles_map = crop_map(freetiles_map, my_agent[3], crop_size,logger)
+    logger.info(f"Freetiles map shape: {freetiles_map.shape}")
+    my_agent_map = crop_map(my_agent_map, my_agent[3], crop_size,logger)
+    logger.info(f"My agent map shape: {my_agent_map.shape}")
+    other_agents_map = crop_map(other_agents_map, my_agent[3], crop_size,logger)
+    logger.info(f"Other agents map shape: {other_agents_map.shape}")
+    logger.info("-----------------")
 
 
     raw_features = np.stack([crates_map, walls_map, explosion_map, coin_map, bomb_map, freetiles_map, my_agent_map, other_agents_map]).astype(float)
