@@ -76,7 +76,7 @@ def act(self, game_state: dict) -> str:
 
 
 # TODO: fix this
-def crop_map(map, agent_pos, crop_size,logger=None):
+def crop_map(map, agent_pos, crop_size, logger=None):
     """
     Crop the map around the agent position. The agent is in the middle of the cropped map. The cropped map is a square.
     """
@@ -84,12 +84,12 @@ def crop_map(map, agent_pos, crop_size,logger=None):
     x, y = agent_pos
     x_min = max(0, x - crop_size // 2 )
     #x_max = min(map.shape[0], x + crop_size // 2)
-    x_max = min(map.shape[0]-1, x_min + crop_size)
+    x_max = min(map.shape[0] - 1, x_min + crop_size - 1)
     x_min = x_max + 1 - crop_size
 
     y_min = max(0, y - crop_size // 2)
     #y_max = min(map.shape[1], y + crop_size // 2)
-    y_max = min(map.shape[1]-1, y_min + crop_size)
+    y_max = min(map.shape[1] - 1, y_min + crop_size - 1)
     y_min = y_max + 1 - crop_size
 
     logger.info(f"Agent position: {agent_pos}")
