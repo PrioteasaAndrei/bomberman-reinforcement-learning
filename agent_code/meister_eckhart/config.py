@@ -30,7 +30,7 @@ BATCH_SIZE = 64
 
 # the number of training steps
 TRAIN_EPOCHS = 10_000
-ROUND_TO_PLOT = 5000 #default 200
+ROUND_TO_PLOT = 15000 #default 200
 SAVE_MODEL_EVERY = 1000
 UPDATE_TARGET_EVERY = 10
 
