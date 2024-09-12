@@ -75,7 +75,7 @@ def act(self, game_state: dict) -> str:
     return np.random.choice(ACTIONS, p=outputs_list)
 
 
-# TODO: fix this
+# TODO: Check this
 def crop_map(map, agent_pos, crop_size, logger=None):
     """
     Crop the map around the agent position. The agent is in the middle of the cropped map. The cropped map is a square.
@@ -83,19 +83,17 @@ def crop_map(map, agent_pos, crop_size, logger=None):
 
     x, y = agent_pos
     x_min = max(0, x - crop_size // 2 )
-    #x_max = min(map.shape[0], x + crop_size // 2)
     x_max = min(map.shape[0] - 1, x_min + crop_size - 1)
     x_min = x_max + 1 - crop_size
 
     y_min = max(0, y - crop_size // 2)
-    #y_max = min(map.shape[1], y + crop_size // 2)
     y_max = min(map.shape[1] - 1, y_min + crop_size - 1)
     y_min = y_max + 1 - crop_size
 
-    logger.info(f"Agent position: {agent_pos}")
-    logger.info(f"x min: {x_min}, x max: {x_max}, y min: {y_min}, y max: {y_max}")
+    #logger.info(f"Agent position: {agent_pos}")
+    #logger.info(f"x min: {x_min}, x max: {x_max}, y min: {y_min}, y max: {y_max}")
 
-    return map[x_min:x_max+1, y_min:y_max+1] #TODO: check if +1 is actually fine
+    return map[x_min:x_max+1, y_min:y_max+1]
 
 def state_to_features(game_state: dict, logger=None) -> np.array:
     """
@@ -167,25 +165,24 @@ def state_to_features(game_state: dict, logger=None) -> np.array:
                 freetiles_map[i,j] = 1
 
     #crop the maps around the agent position
-    crop_size = 7
-    logger.info("-----------------")
-    crates_map = crop_map(crates_map, my_agent[3], crop_size,logger)
-    logger.info(f"Crates map shape: {crates_map.shape}")
-    walls_map = crop_map(walls_map, my_agent[3], crop_size,logger)
-    logger.info(f"Walls map shape: {walls_map.shape}")
-    explosion_map = crop_map(explosion_map, my_agent[3], crop_size,logger)
-    logger.info(f"Explosion map shape: {explosion_map.shape}")
-    coin_map = crop_map(coin_map, my_agent[3], crop_size,logger)
-    logger.info(f"Coin map shape: {coin_map.shape}")
-    bomb_map = crop_map(bomb_map, my_agent[3], crop_size,logger)
-    logger.info(f"Bomb map shape: {bomb_map.shape}")
-    freetiles_map = crop_map(freetiles_map, my_agent[3], crop_size,logger)
-    logger.info(f"Freetiles map shape: {freetiles_map.shape}")
-    my_agent_map = crop_map(my_agent_map, my_agent[3], crop_size,logger)
-    logger.info(f"My agent map shape: {my_agent_map.shape}")
-    other_agents_map = crop_map(other_agents_map, my_agent[3], crop_size,logger)
-    logger.info(f"Other agents map shape: {other_agents_map.shape}")
-    logger.info("-----------------")
+    #logger.info("-----------------")
+    crates_map = crop_map(crates_map, my_agent[3], CROP_SIZE,logger)
+    #logger.info(f"Crates map shape: {crates_map.shape}")
+    walls_map = crop_map(walls_map, my_agent[3], CROP_SIZE,logger)
+    #logger.info(f"Walls map shape: {walls_map.shape}")
+    explosion_map = crop_map(explosion_map, my_agent[3], CROP_SIZE,logger)
+    #logger.info(f"Explosion map shape: {explosion_map.shape}")
+    coin_map = crop_map(coin_map, my_agent[3], CROP_SIZE,logger)
+    #logger.info(f"Coin map shape: {coin_map.shape}")
+    bomb_map = crop_map(bomb_map, my_agent[3], CROP_SIZE,logger)
+    #logger.info(f"Bomb map shape: {bomb_map.shape}")
+    freetiles_map = crop_map(freetiles_map, my_agent[3], CROP_SIZE,logger)
+    #logger.info(f"Freetiles map shape: {freetiles_map.shape}")
+    my_agent_map = crop_map(my_agent_map, my_agent[3], CROP_SIZE,logger)
+    #logger.info(f"My agent map shape: {my_agent_map.shape}")
+    other_agents_map = crop_map(other_agents_map, my_agent[3], CROP_SIZE,logger)
+    #logger.info(f"Other agents map shape: {other_agents_map.shape}")
+    #logger.info("-----------------")
 
 
     raw_features = np.stack([crates_map, walls_map, explosion_map, coin_map, bomb_map, freetiles_map, my_agent_map, other_agents_map]).astype(float)

@@ -173,6 +173,12 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device, memory: 
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
     # for each batch state according to policy_net
+
+    self.logger.info(f"shape of state_batch: {state_batch.size()}")
+    #when doing a training step action_batch has not the correct size. TODO:CHECK IF CORRECT
+    action_batch = action_batch[:, None]
+    self.logger.info(f"shape of action_batch: {action_batch.size()}")
+    
     state_action_values = self.policy_net(state_batch.float().to(device)).gather(1, action_batch.to(device))
 
     # Compute V(s_{t+1}) for all next states.
