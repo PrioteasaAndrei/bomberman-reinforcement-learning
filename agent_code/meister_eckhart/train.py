@@ -56,7 +56,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     into_out_of_blast(self, old_game_state, new_game_state, events)
 
     # state_to_features is defined in callbacks.py
-    self.memory.append(Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events)))
+    self.memory.append(Transition(state_to_features(old_game_state, logger = self.logger), self_action, state_to_features(new_game_state, logger = self.logger), reward_from_events(self, events)))
 
     self.round_scores += get_score(events)
 
@@ -81,7 +81,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     """
 
     # self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
-    self.memory.append(Transition(state_to_features(last_game_state), last_action, None, reward_from_events(self, events)))
+    self.memory.append(Transition(state_to_features(last_game_state, logger = self.logger), last_action, None, reward_from_events(self, events)))
     self.scores.append(self.round_scores)
     self.round_scores = 0
 
