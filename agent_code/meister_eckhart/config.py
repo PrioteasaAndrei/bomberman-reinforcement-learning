@@ -14,6 +14,8 @@ Transition = namedtuple('Transition',
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
+WALKING_DIRECTIONS = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+
 TRAIN_DEVICE = torch.device(
     "cuda" if torch.cuda.is_available() else
     "mps" if torch.backends.mps.is_available() else

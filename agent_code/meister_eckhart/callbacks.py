@@ -7,7 +7,8 @@ import torch
 import logging
 import settings
 from .exploration_strategies import *
-from .config import *
+from .rewards import *
+
 
 def setup(self):
     """
@@ -47,6 +48,8 @@ def act(self, game_state: dict) -> str:
     :param game_state: The dictionary that describes everything on the board.
     :return: The action to take as a string.
     """
+
+    state_to_features_coin_heaven(game_state, self.logger)
 
     raw_features = state_to_features(game_state,self.logger)
     raw_features = torch.tensor(raw_features).unsqueeze(0)  # Shape becomes (1, 8, 17, 17)
@@ -95,25 +98,51 @@ def crop_map(map, agent_pos, crop_size, logger=None):
 
     return map[x_min:x_max+1, y_min:y_max+1]
 
-def state_to_features(game_state: dict, logger=None) -> np.array:
-    """
-    *This is not a required function, but an idea to structure your code.*
 
-    Converts the game state to the input of your model, i.e.
-    a feature vector.
 
-    You can find out about the state of the game environment via game_state,
-    which is a dictionary. Consult 'get_state_for_agent' in environment.py to see
-    what it contains.
 
-    :param game_state:  A dictionary describing the current game board.
-    :return: np.array
-    """
-    # This is the dict before the game begins and after it ends
+def state_to_features_coin_heaven(game_state: dict, logger=None) -> np.array:
     
+    if game_state is None:
+        return None
+    
+    agent_position = game_state['self'][3]
+    other_agents_positions = [agent[3] for agent in game_state['others']]
+    explosion_map = get_explosion_map(game_state['bombs'], game_state['field'], game_state['explosion_map'])
+    field = game_state['field']
+    ### Dropping bomb feature ### 
+
+    potential_crate = False
+    oponent_in_reach = False
+    bomb_feature = 0 # just an int
+
+    # free from bombs / explosion
+    if explosion_map[agent_position] == 1: 
+        for step in WALKING_DIRECTIONS:
+            possible_position = (agent_position[0] + step[0], agent_position[1] + step[1])
+            if possible_position in other_agents_positions:
+                oponent_in_reach = True
+            if field[possible_position] == 1 and explosion_map[possible_position] == 1:
+                potential_crate = True
+
+    if (not potential_crate and not oponent_in_reach) or (not game_state['self'][2]) or check_death(simulate_explosion_map(explosion_map, agent_position, field), agent_position, None, field):
+        bomb_feature = -1    
+    else:
+
+        bomb_feature = get_number_exploded_crates(agent_position, explosion_map, field)
+
+        if oponent_in_reach:
+            bomb_feature += 5
+
+    logger.info(f"Bomb feature: {bomb_feature}")
+
+
+def state_to_features(game_state: dict, logger=None) -> np.array:
     '''
-    Transforms the game state dictionary into a multi-channel numpy array that will be fed to the 
-    feature discovery network
+    Features we want to track:
+
+    1. how useful it is to drop a bomb
+    2. death when moving towards a 
     '''
     if game_state is None:
         return None
