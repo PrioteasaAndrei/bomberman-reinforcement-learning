@@ -21,8 +21,8 @@ GOT_KILLED_REWARD = -50
 CRATE_DESTROYED_REWARD = 0.5
 SURVIVED_ROUND_REWARD = 0.2
 MOVE_REWARD = -0.1
-MOVED_CLOSER_TO_COIN_REWARD = 0.4
-MOVED_FURTHER_FROM_COIN_REWARD = -0.6
+MOVED_CLOSER_TO_COIN_REWARD = 10
+MOVED_FURTHER_FROM_COIN_REWARD = -15
 AVOIDED_SELF_BOMB_REWARD = 0
 OUT_OF_BLAST_REWARD = 20
 INTO_BLAST_REWARD = -30
@@ -84,7 +84,7 @@ def into_out_of_blast(self, old_game_state, new_game_state, events: List[str]):
         events.append(INTO_BLAST)
 
 
-def bfs_to_objective(current_position: Tuple[int, int], objective_coordinates: List[Tuple[int,int]], game_map) -> Tuple[int, int]:
+def bfs_to_objective(current_position: Tuple[int, int], objective_coordinates: List[Tuple[int,int]], game_map, explosion_map) -> Tuple[int, int]:
     """
     Rewards the agent for moving towards the objective.
     returns: position of the closest objective as tuple
@@ -103,7 +103,7 @@ def bfs_to_objective(current_position: Tuple[int, int], objective_coordinates: L
         for move in moves:
             next_position = (current_position[0] + move[0], current_position[1] + move[1])
             if 0 <= next_position[0] < game_map.shape[0] and 0 <= next_position[1] < game_map.shape[1] and \
-                game_map[next_position] == 0 and not visited_cells[next_position]:
+                game_map[next_position] == 0 and explosion_map[next_position] != 0 and not visited_cells[next_position]:
                 bfs_queue.append((next_position, distance + 1))
 
     return (-1,-1)
@@ -114,9 +114,9 @@ def moved_towards_coin_reward(self, old_game_state, game_state, events: List[str
     """
 
     # get position of the closest coin to the agent in the old state
-    closest_coin_coord = bfs_to_objective(old_game_state['self'][3], old_game_state['coins'], old_game_state['field'])
+    closest_coin_coord = bfs_to_objective(old_game_state['self'][3], old_game_state['coins'], old_game_state['field'], old_game_state['explosion_map'])
     # get position of the closest coin to the agent in the new game state
-    new_closest_coin_coord = bfs_to_objective(game_state['self'][3], game_state['coins'], game_state['field'])
+    new_closest_coin_coord = bfs_to_objective(game_state['self'][3], game_state['coins'], game_state['field'], game_state['explosion_map'])  
 
     if closest_coin_coord == (-1,-1) or new_closest_coin_coord == (-1,-1):
         return
