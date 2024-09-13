@@ -44,22 +44,24 @@ Steps:
 
 # Questions
 
-3. Ask if we are allowed to use gymnasium or stable baseline for the project?
-
 4. What is the difference between events and features? Why do we need both and why are not the events linked to the features 1:1?
    A: events are used to map to rewards which contribute to the calculation of the target q in the bellman equation which is then compared with the predicted Q of the policy network and the loss is used for training.
 
 # TODOS
-
-- [ ] improve feature space by using some of the defined features from maverick + Bomberbrains
-- [ ] define a way to test our CNN network on gogle colab with batch_size 64 and 800 000 training steps
--
-
+- [ ] complete a new named tuple for transitions that also hass additional_rewards field
+- [ ] look into maverick training line 67 and implement add_remaining_experience to update the new additional_reward field
+- [ ] complete new training function and check all shapes
+- [ ] make sure that the optimizer and loss function are now part of the network itself and not initialzied separately
+- [ ] after integrating the new n-step TD Q-learning, test the training again to see if its any difference
+- [ ] BONUS: instead of iterating through the minibatch to calculate the y in the training function, do that vectorized by first filtering out the transitions in which the new state (features) are None and calculating Y vectorized
+- [ ] increase batch size to 100
+- [ ] switch updating the target network at the end of every round (in end_of_round) function to resemble maverick
+- [ ] instead of an integer for the action make a one hot vector encoding (dimension 6) for the action in the transition buffer
 - [ ] add the distance between updating the target newtork and the policy network as a hyperparam and plot the network performance based on this param (try per episodes and per steps)
 - [ ] fix problem that softmax doeesnt output probs that sum up to 1 (very close to 1). Might be the dim argument in the softmax or some other numerical bullshit
 
 # Working on TOODOS
-- [ ] implement new useful events and create functions to check if they are fullfilled. See restrictions in pdf and in Architecture
+- [ ] improve feature space by using some of the defined features from maverick + Bomberbrains
 
 
 # Solved TODOs
@@ -67,6 +69,7 @@ Steps:
 - [X] in the train_setup and setup (callback) functions initialize and load the models, initialize the optimizer and loss function, initialize the ReplayMemory
 - [X] write a function that saves and loads the model at the end of a training cycle (.pth or pickle whatever works)
 - [X] create a buffer of actions of the rule based agent to feed to our network for initial training where the agent is too weak to gather enough moves to learn from them
+- [x] define a way to test our CNN network on gogle colab with batch_size 64 and 800 000 training steps | result: not training
 
 # Running Shell Script
 Before executing the script for the first time, run: `chmod 755 run_agent.sh`.

@@ -38,8 +38,13 @@ class SimpleDQN(nn.Module):
     '''
     Number of parameters: 384 + input_shape_vectorized * 64
     '''
-    def __init__(self,input_shape=(8,7,7),num_actions=6,logger=None):
+    def __init__(self,input_shape=(8,7,7),num_actions=6,logger=None,gamma=0.6,optimizer=None,lr=0.001,criterion=nn.MSELoss()):
         super(JointDQN, self).__init__()
+
+
+        self.gamma = gamma
+        self.optimizer = optimizer(self.parameters(), lr=lr)
+        self.criterion = criterion
 
         self.vectorized_shape = math.prod(input_shape)
        
@@ -48,7 +53,7 @@ class SimpleDQN(nn.Module):
             nn.Linear(self.vectorized_shape, 64),
             nn.ReLU(),
             nn.Linear(64, num_actions),
-            nn.Softmax(dim=1)
+            nn.Softmax(dim=1) # TODO: remove this as in maverick and apply it in step
         )
 
     def forward(self, x):
@@ -73,7 +78,7 @@ class JointDQN(nn.Module):
     '''
     def __init__(self,input_shape=(8,7,7),num_actions=6,logger=None):
         super(JointDQN, self).__init__()
-        
+
         self.feature_extractor = nn.Sequential(
             nn.Conv2d(in_channels=input_shape[0], out_channels=16, kernel_size=3),
             nn.ReLU(),
@@ -130,6 +135,54 @@ def action_to_tensor(action: str):
     # Convert the index to a tensor
     index_tensor = torch.tensor(index)
     return index_tensor
+
+def train_step_new(self, batch_size: int, gamma: int, device: torch.device, memory: ReplayMemory):
+
+    if len(memory) < batch_size:
+        return
+    
+    transitions = memory.sample(batch_size)
+    batch = Transition(*zip(*transitions))
+
+    Y = []
+    for element in transitions:
+        feature_old = element.state
+        action = element.action
+        feature_new = element.next_state
+        reward = element.reward
+        additional_rewards = element.additional_rewards # TODO: add this in new transition named tuple
+
+        if feature_new is not None:
+            y = reward + self.target_network.gamma ** (additional_rewards - 1) * torch.max(self.target_net(feature_new))
+        else:
+            y = reward
+
+        Y.append(y)
+
+    Y = torch.tensor(Y)
+
+    # TODO: check this, I have a feeling something might be wrong with the stacking instead of using cat as we should
+    state_batch = torch.stack(list(map(torch.from_numpy,list(batch.state))))
+    
+    # now this will be 6 dimensional one hot encoded tensor
+    action_batch = torch.stack(list(list(map(action_to_tensor,batch.action))))
+
+    qs = self.policy_net(state_batch.float().to(device))
+    Q = torch.sum(qs * action_batch, dim=1)
+
+    # prioritized replay, chose batch_size samples from memory ordered by residuals
+
+    res = torch.abs(Y - Q)
+    _, indices = torch.topk(res, batch_size)
+
+    # Compute loss, its important that the loss here is part of the network and its saved as part of the network?
+    loss = self.criterion(Q[indices], Y[indices])
+    self.policy_net.optimizer.zero_grad()
+    loss.backward()
+    self.policy_net.optimizer.step()
+    
+
+
 
 # This function is based on the following tutorial: https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
 def train_step(self, batch_size: int, gamma: int, device: torch.device, memory: ReplayMemory):
