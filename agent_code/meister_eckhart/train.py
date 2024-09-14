@@ -91,8 +91,10 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
 
-    if last_game_state['round'] == ROUND_TO_PLOT:
+    if last_game_state['round'] % ROUND_TO_PLOT == 0:
         # Plot the losses
+        # plt.clf()
+
         plt.plot(self.losses[::10])
         plt.xlabel("Training steps")
         plt.ylabel("Loss")

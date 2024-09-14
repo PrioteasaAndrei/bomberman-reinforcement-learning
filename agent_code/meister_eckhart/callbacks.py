@@ -72,7 +72,8 @@ def act(self, game_state: dict) -> str:
     ## TODO: move inference here, there is no point in doing it if we chose a random action
     ## TODO: move score measuring here
     self.logger.debug("Querying model for action.")
-    return np.random.choice(ACTIONS, p=outputs_list)
+    # return np.random.choice(ACTIONS, p=outputs_list)
+    return ACTIONS[np.argmax(outputs_list)]
 
 
 # TODO: Check this
