@@ -52,6 +52,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
 
     # check for custom events
     moved_towards_coin_reward(self, old_game_state, new_game_state, events)
+    avoid_long_wait(self, events)
     avoided_self_bomb_reward(self, old_game_state, events)
     into_out_of_blast(self, old_game_state, new_game_state, events)
 

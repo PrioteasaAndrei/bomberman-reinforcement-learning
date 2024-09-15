@@ -21,4 +21,4 @@ fi
 # Run game
 # echo "Running agent $agent1 $mode_message with $agent2, $agent3, $agent4 in scenario $scenario for $n_rounds episodes."
 # python main.py play --agents $agent1 $agent2 $agent3 $agent4 --train $n_train --n-rounds $n_rounds --scenario $scenario --no-gui
-python main.py play --agents $agent1 --train $n_train --n-rounds $n_rounds --scenario $scenario --no-gui
+python main.py play --agents $agent1 --train $n_train --n-rounds $n_rounds --scenario $scenario # --no-gui

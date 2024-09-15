@@ -5,12 +5,15 @@ from collections import Counter, deque
 from items import Bomb
 import settings
 
+LONG_WAIT_LIMIT = 3
+
 # Custom events
 MOVED_CLOSER_TO_COIN = 'MOVED_CLOSER_TO_COIN'
 MOVED_FURTHER_FROM_COIN = 'MOVED_FURTHER_FROM_COIN'
 AVOIDED_SELF_BOMB = 'AVOIDED_SELF_BOMB'
 OUT_OF_BLAST = 'OUT_OF_BLAST'
 INTO_BLAST = 'INTO_BLAST'
+LONG_WAIT = 'LONG_WAIT'
 
 # Rewards
 COIN_COLLECTION_REWARD = 10 #default 1
@@ -27,6 +30,7 @@ AVOIDED_SELF_BOMB_REWARD = 0
 OUT_OF_BLAST_REWARD = 20
 INTO_BLAST_REWARD = -30
 BOMB_REWARD = 0
+LONG_WAIT_REWARD = -100
 
 
 GAME_REWARDS = {
@@ -46,8 +50,21 @@ GAME_REWARDS = {
         MOVED_FURTHER_FROM_COIN: MOVED_FURTHER_FROM_COIN_REWARD,
         AVOIDED_SELF_BOMB: AVOIDED_SELF_BOMB_REWARD,
         OUT_OF_BLAST: OUT_OF_BLAST_REWARD,
-        INTO_BLAST: INTO_BLAST_REWARD
+        INTO_BLAST: INTO_BLAST_REWARD,
+        LONG_WAIT: LONG_WAIT_REWARD
     }
+
+def avoid_long_wait(self, events: List[str]):
+    """
+    Penalize too long waits.
+    """
+    if e.WAITED in events:
+        self.waited_times += 1
+    else:
+        self.waited_times = 0
+
+    if self.waited_times > LONG_WAIT_LIMIT:
+        events.append(LONG_WAIT)
 
 def crate_destroyer_reward(self, game_state, events: List[str]) -> int:
     """
@@ -85,6 +102,7 @@ def into_out_of_blast(self, old_game_state, new_game_state, events: List[str]):
 
 
 def bfs_to_objective(current_position: Tuple[int, int], objective_coordinates: List[Tuple[int,int]], game_map) -> Tuple[int, int]:
+    #IDEA: crop the game_map to match the view of the agent
     """
     Rewards the agent for moving towards the objective.
     returns: position of the closest objective as tuple
