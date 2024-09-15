@@ -2,14 +2,14 @@
 # Alternatively for bash use: #!/bin/bash
 
 # Change directory to execute main.py
-cd ../..
+cd ../../..
 
 agent1="meister_eckhart"
 agent2="peaceful_agent"
 agent3="peaceful_agent"
 agent4="peaceful_agent"
 n_train=1
-n_rounds=5000
+n_rounds=700
 scenario="coin-heaven"
 
 if [ "$n_train" -eq 1 ]; then

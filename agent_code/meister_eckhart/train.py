@@ -113,9 +113,16 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
 
         if last_game_state['round'] % SAVE_MODEL_EVERY == 0:
-            # Store the model
-            with open("my-saved-model.pt", "wb") as file:
-                pickle.dump(self.policy_net, file)
+            checkpoint = {
+                'n_round': last_game_state['round'],  # Save the current round number
+                'model_state_dict': self.policy_net.state_dict(),  # Save model weights
+                'optimizer_state_dict': self.optimizer.state_dict(),  # Save optimizer state
+                'loss': self.losses[-1]  # Save the current loss value
+            }
+            torch.save(checkpoint, MODEL_SAVE_PATH)
+            # # Store the model
+            # with open("my-saved-model.pt", "wb") as file:
+            #     pickle.dump(self.policy_net, file)
 
   
 '''

@@ -4,6 +4,7 @@ import random
 import numpy as np
 from .model import *
 import torch
+import torch.optim as optim
 import logging
 import settings
 from .exploration_strategies import *
@@ -23,8 +24,28 @@ def setup(self):
 
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
-
-    if self.train or not os.path.isfile(MODEL_SAVE_PATH):
+    global TRAIN_FROM_CHECKPOINT
+    if not self.train:
+        TRAIN_FROM_CHECKPOINT = False
+    
+    if self.train and os.path.isfile(MODEL_SAVE_PATH) and TRAIN_FROM_CHECKPOINT:
+        self.logger.info("Loading model from saved state for further training.")
+        self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
+        self.target_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
+        # load the checkpoint
+        checkpoint = torch.load(MODEL_SAVE_PATH)
+        # restore model state, optimizer state, loss and epoch (if needed)
+        self.policy_net.load_state_dict(checkpoint['model_state_dict'])
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        # if necessary for plotting
+        self.n_round = checkpoint['n_round']
+        self.loss = checkpoint['loss']
+        # set update strategy
+        # could also be saved at checkpoint
+        self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=1000)
+    elif self.train or not os.path.isfile(MODEL_SAVE_PATH):
         self.logger.info("Setting up model from scratch.")
         self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
         self.target_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
@@ -32,11 +53,13 @@ def setup(self):
         self.logger.info(f"Number of parameters in the model: {self.policy_net.number_of_params()}")
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
         self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=1000)
-
     else:
-        self.logger.info("Loading model from saved state.")
-        with open(MODEL_SAVE_PATH, "rb") as file:
-            self.policy_net = pickle.load(file)
+        self.logger.info("Loading model from saved state for inference.")
+        self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
+        checkpoint = torch.load(MODEL_SAVE_PATH)
+        self.policy_net.load_state_dict(checkpoint['model_state_dict'])
+        # with open(MODEL_SAVE_PATH, "rb") as file:
+        #     self.policy_net = pickle.load(file)
 
 def act(self, game_state: dict) -> str:
     """

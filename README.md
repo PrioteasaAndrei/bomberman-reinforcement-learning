@@ -53,7 +53,7 @@ Steps:
 
 - [ ] improve feature space by using some of the defined features from maverick + Bomberbrains
 - [ ] define a way to test our CNN network on gogle colab with batch_size 64 and 800 000 training steps
--
+- [ ] find out why the agent chooses WAIT after certain number of steps
 
 - [ ] add the distance between updating the target newtork and the policy network as a hyperparam and plot the network performance based on this param (try per episodes and per steps)
 - [ ] fix problem that softmax doeesnt output probs that sum up to 1 (very close to 1). Might be the dim argument in the softmax or some other numerical bullshit
