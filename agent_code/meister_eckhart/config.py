@@ -20,7 +20,7 @@ TRAIN_DEVICE = torch.device(
     "cpu"
 )
 LEARNING_RATE = 0.0001
-MODEL_SAVE_PATH = "saved_models/my-saved-model-rule-based-coin-heaven.pt"
+MODEL_SAVE_PATH = "my-saved-model.pt"
 
 # Hyper parameters -- DO modify
 RECORD_ENEMY_TRANSITIONS = 1.0 # record enemy transitions with probability ...

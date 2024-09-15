@@ -178,9 +178,9 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device, memory: 
     #when doing a training step action_batch has not the correct size. TODO:CHECK IF CORRECT
     action_batch = action_batch[:, None]
     self.logger.info(f"shape of action_batch: {action_batch.size()}")
-    
+    self.logger.info(f"Calculating policy net")
     state_action_values = self.policy_net(state_batch.float().to(device)).gather(1, action_batch.to(device))
-
+    self.logger.info(f"Calculating target net")
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
     # on the "older" target_net; selecting their best reward with max(1).values
@@ -189,6 +189,8 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device, memory: 
     # Reason for using the target network : https://stackoverflow.com/questions/54237327/why-is-a-target-network-required
     next_state_values = torch.zeros(batch_size, device=device)
     with torch.no_grad():
+        self.logger.info(f"non_final_next_states: {non_final_next_states.shape}")
+        self.logger.info(f"non_final_mask: {non_final_mask.shape}")
         next_state_values[non_final_mask] = self.target_net(non_final_next_states.float().to(device)).max(1).values
     # Compute the expected Q values
     expected_state_action_values = (next_state_values.view(-1, 1) * gamma) + reward_batch.to(device)

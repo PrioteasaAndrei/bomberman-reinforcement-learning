@@ -103,12 +103,12 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         plt.clf()
 
         ## number of scores higher that 4
-        big_scores = len([score for score in self.scores if score > 4])
+        big_scores = len([score for score in self.scores if score > 40])
         # Plot the scores
         plt.plot(self.scores)
         plt.xlabel("Training steps")
         plt.ylabel("Score")
-        plt.title("Scores. We have " + str(big_scores) + " scores higher than 4")
+        plt.title("Scores. We have " + str(big_scores) + " scores higher than 40")
         plt.savefig("logs/scores" +".png")
 
 

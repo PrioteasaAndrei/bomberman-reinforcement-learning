@@ -73,6 +73,7 @@ def act(self, game_state: dict) -> str:
     ## TODO: move score measuring here
     self.logger.debug("Querying model for action.")
     # return np.random.choice(ACTIONS, p=outputs_list)
+    self.logger.info(f"Chosen action: {ACTIONS[np.argmax(outputs_list)]}")
     return ACTIONS[np.argmax(outputs_list)]
 
 

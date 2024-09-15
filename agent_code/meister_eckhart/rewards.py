@@ -13,16 +13,16 @@ OUT_OF_BLAST = 'OUT_OF_BLAST'
 INTO_BLAST = 'INTO_BLAST'
 
 # Rewards
-COIN_COLLECTION_REWARD = 1
+COIN_COLLECTION_REWARD = 10 #default 1
 KILLED_OPPONENT_REWARD = 200
-INVALID_ACTION_REWARD = -40
+INVALID_ACTION_REWARD = -100
 KILLED_SELF_REWARD = -100
 GOT_KILLED_REWARD = -50
 CRATE_DESTROYED_REWARD = 0.5
 SURVIVED_ROUND_REWARD = 0.2
 MOVE_REWARD = -0.1
-MOVED_CLOSER_TO_COIN_REWARD = 0.4
-MOVED_FURTHER_FROM_COIN_REWARD = -0.6
+MOVED_CLOSER_TO_COIN_REWARD = 0.8 #default 0.4
+MOVED_FURTHER_FROM_COIN_REWARD = -1 #default -0.6
 AVOIDED_SELF_BOMB_REWARD = 0
 OUT_OF_BLAST_REWARD = 20
 INTO_BLAST_REWARD = -30
@@ -89,6 +89,7 @@ def bfs_to_objective(current_position: Tuple[int, int], objective_coordinates: L
     Rewards the agent for moving towards the objective.
     returns: position of the closest objective as tuple
     """
+    #TODO EXPLOSIONS NOT CONSIDERED
     moves = [(0, -1), (0, 1), (-1, 0), (1, 0)]
     visited_cells = np.zeros_like(game_map) + np.abs(np.where(game_map == 1, 0, game_map))
     bfs_queue = deque()
