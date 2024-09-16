@@ -31,6 +31,11 @@ def setup_training(self):
     self.round_scores = 0
 
     self.position_history = deque(maxlen=POSITION_HISTORY_SIZE)
+
+    self.round_custom_scores = []
+
+    self.epsilon_values = []
+
         
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
@@ -61,8 +66,9 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
 
     # state_to_features is defined in callbacks.py
     self.memory.append(Transition(state_to_features(old_game_state, logger = self.logger), self_action, state_to_features(new_game_state, logger = self.logger), reward_from_events(self, events)))
-
+    self.round_custom_scores.append(reward_from_events(self, events))
     self.round_scores += get_score(events)
+    self.epsilon_values.append(self.epsilon_update_strategy.epsilon)
 
     if self.memory.can_provide_sample(BATCH_SIZE):
         # Train your agent
@@ -98,7 +104,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
     # plot the custom rewards per step for one round
     plt.clf()
-    plt.plot(self.round_custom_scores)
+    cumulative_scores = [sum(self.round_custom_scores[:i+1]) for i in range(len(self.round_custom_scores))]
+    plt.plot(cumulative_scores)
     plt.xlabel("Step")
     plt.ylabel("Custom reward")
     plt.title("Custom rewards per step")
@@ -108,6 +115,15 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
     if last_game_state['round'] % ROUND_TO_PLOT == 0:
         # Plot the losses
+        plt.clf()
+
+        # plot the epsilon values
+        plt.plot(self.epsilon_values)
+        plt.xlabel("Training steps")
+        plt.ylabel("Epsilon")
+        plt.title("Epsilon values")
+        plt.savefig("logs/epsilon_values" +".png")
+
         plt.clf()
 
         plt.plot(self.losses[::10])
@@ -134,7 +150,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
                 'n_round': last_game_state['round'],  # Save the current round number
                 'model_state_dict': self.policy_net.state_dict(),  # Save model weights
                 'optimizer_state_dict': self.optimizer.state_dict(),  # Save optimizer state
-                'loss': self.losses[-1]  # Save the current loss value
+                'loss': self.losses[-1],  # Save the current loss value,
+                'epsilon_strategy': self.epsilon_update_strategy
             }
             torch.save(checkpoint, MODEL_SAVE_PATH)
             # # Store the model

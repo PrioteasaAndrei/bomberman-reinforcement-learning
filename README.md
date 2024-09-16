@@ -54,9 +54,11 @@ Steps:
 - [ ] improve feature space by using some of the defined features from maverick + Bomberbrains
 - [ ] define a way to test our CNN network on gogle colab with batch_size 64 and 800 000 training steps
 - [ ] find out why the agent chooses WAIT after certain number of steps
-
+- [ ] why is linear decay not linear?
 - [ ] add the distance between updating the target newtork and the policy network as a hyperparam and plot the network performance based on this param (try per episodes and per steps)
 - [ ] fix problem that softmax doeesnt output probs that sum up to 1 (very close to 1). Might be the dim argument in the softmax or some other numerical bullshit
+- [ ] IMPORTANT: adjust linear decay steps to the number of steps we estimate to have for a number of training rounds; test the number of decay steps compared to training rounds
+- [ ] IMPORTANT: we update target net every 100 rounds, isnt that too big? Test this maybe make it smaller
 
 # Working on TOODOS
 - [ ] implement new useful events and create functions to check if they are fullfilled. See restrictions in pdf and in Architecture
@@ -93,3 +95,17 @@ Plan for today:
 Notes:
 - 2 Linears work as well as seen in https://github.com/nickstr15/bomberman/blob/master/agent_code/maverick/Model.py
 - training is the problem, we should look at at least 1 000 000 training steps
+
+
+Mon Sep 16 19:03:18 CEST 2024
+
+Epsilon estimates:
+
+200 rounds is approximately 3500 steps so on average, 18 steps per round at the beginning
+with 10 000 decay steps we reach epsilon 0.7
+
+10 000 decay steps go to 0.1 30 0000 steps at 60% (in a 2000 rounds scenario)
+
+Linear Decay on 400 games with 1000 decay steps produced better agents than Exponential decay with 0.999 decay param for 400 games
+
+Running inference only (without 0.1 exploration) gets the agent stuck in wiggling.
