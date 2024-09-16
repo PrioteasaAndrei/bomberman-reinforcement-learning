@@ -59,7 +59,7 @@ Steps:
 - [ ] fix problem that softmax doeesnt output probs that sum up to 1 (very close to 1). Might be the dim argument in the softmax or some other numerical bullshit
 - [ ] IMPORTANT: adjust linear decay steps to the number of steps we estimate to have for a number of training rounds; test the number of decay steps compared to training rounds
 - [ ] IMPORTANT: we update target net every 100 rounds, isnt that too big? Test this maybe make it smaller
-
+- [ ] merge actually training into master and start working on master
 # Working on TOODOS
 - [ ] implement new useful events and create functions to check if they are fullfilled. See restrictions in pdf and in Architecture
 
@@ -109,3 +109,5 @@ with 10 000 decay steps we reach epsilon 0.7
 Linear Decay on 400 games with 1000 decay steps produced better agents than Exponential decay with 0.999 decay param for 400 games
 
 Running inference only (without 0.1 exploration) gets the agent stuck in wiggling.
+
+We may have a problem with the update time for the target net. 100 rounds of 100 actions each may be too much.
