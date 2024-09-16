@@ -6,6 +6,10 @@ from items import Bomb
 import settings
 
 LONG_WAIT_LIMIT = 3
+POSITION_HISTORY_SIZE = 6
+REPEATED_POSITION_LIMIT = 3
+FREQUENT_POSITION_LIMIT = 1
+
 
 # Custom events
 MOVED_CLOSER_TO_COIN = 'MOVED_CLOSER_TO_COIN'
@@ -14,6 +18,7 @@ AVOIDED_SELF_BOMB = 'AVOIDED_SELF_BOMB'
 OUT_OF_BLAST = 'OUT_OF_BLAST'
 INTO_BLAST = 'INTO_BLAST'
 LONG_WAIT = 'LONG_WAIT'
+WIGGLING = 'WIGGLING'
 
 # Rewards
 COIN_COLLECTION_REWARD = 10 #default 1
@@ -31,6 +36,7 @@ OUT_OF_BLAST_REWARD = 20
 INTO_BLAST_REWARD = -30
 BOMB_REWARD = 0
 LONG_WAIT_REWARD = -100
+WIGGLING_REWARD = -100
 
 
 GAME_REWARDS = {
@@ -45,13 +51,15 @@ GAME_REWARDS = {
         e.MOVED_LEFT: MOVE_REWARD,
         e.MOVED_RIGHT: MOVE_REWARD,
         e.MOVED_UP: MOVE_REWARD,
+        # e.WAITED: MOVE_REWARD, # penalize just waiting
         e.BOMB_DROPPED: BOMB_REWARD,
         MOVED_CLOSER_TO_COIN: MOVED_CLOSER_TO_COIN_REWARD,
         MOVED_FURTHER_FROM_COIN: MOVED_FURTHER_FROM_COIN_REWARD,
         AVOIDED_SELF_BOMB: AVOIDED_SELF_BOMB_REWARD,
         OUT_OF_BLAST: OUT_OF_BLAST_REWARD,
         INTO_BLAST: INTO_BLAST_REWARD,
-        LONG_WAIT: LONG_WAIT_REWARD
+        LONG_WAIT: LONG_WAIT_REWARD,
+        WIGGLING: WIGGLING_REWARD
     }
 
 def avoid_long_wait(self, events: List[str]):
@@ -65,6 +73,18 @@ def avoid_long_wait(self, events: List[str]):
 
     if self.waited_times > LONG_WAIT_LIMIT:
         events.append(LONG_WAIT)
+
+def avoid_wiggling(self, events: List[str]):
+
+    position_freq = Counter(self.position_history)
+    frequent_positions = 0
+
+    for pos, count  in position_freq.items():
+        if count > REPEATED_POSITION_LIMIT:
+            frequent_positions += 1
+    
+    if frequent_positions > FREQUENT_POSITION_LIMIT:
+        events.append(WIGGLING)
 
 def crate_destroyer_reward(self, game_state, events: List[str]) -> int:
     """

@@ -29,6 +29,8 @@ def setup_training(self):
     self.losses = []
     self.scores = []
     self.round_scores = 0
+
+    self.position_history = deque(maxlen=POSITION_HISTORY_SIZE)
         
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
@@ -55,6 +57,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     avoid_long_wait(self, events)
     avoided_self_bomb_reward(self, old_game_state, events)
     into_out_of_blast(self, old_game_state, new_game_state, events)
+    avoid_wiggling(self, events)
 
     # state_to_features is defined in callbacks.py
     self.memory.append(Transition(state_to_features(old_game_state, logger = self.logger), self_action, state_to_features(new_game_state, logger = self.logger), reward_from_events(self, events)))
@@ -86,15 +89,26 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.scores.append(self.round_scores)
     self.round_scores = 0
 
+    
+
     # update target net
     if last_game_state['round'] % UPDATE_TARGET_EVERY == 0:
         # set the target net weights to the ones of the policy net
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
+    # plot the custom rewards per step for one round
+    plt.clf()
+    plt.plot(self.round_custom_scores)
+    plt.xlabel("Step")
+    plt.ylabel("Custom reward")
+    plt.title("Custom rewards per step")
+    plt.savefig("logs/custom_rewards" +".png")
+    self.round_custom_scores = []
+
 
     if last_game_state['round'] % ROUND_TO_PLOT == 0:
         # Plot the losses
-        # plt.clf()
+        plt.clf()
 
         plt.plot(self.losses[::10])
         plt.xlabel("Training steps")
@@ -106,13 +120,15 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         ## number of scores higher that 4
         big_scores = len([score for score in self.scores if score > 40])
         # Plot the scores
-        plt.plot(self.scores)
+        plt.scatter(list(range(len(self.scores))),self.scores)
+        ## plot on the same graph the scores which are 50
+        plt.scatter([i for i, score in enumerate(self.scores) if score == 50], [score for score in self.scores if score == 50], color = 'red')
         plt.xlabel("Training steps")
         plt.ylabel("Score")
         plt.title("Scores. We have " + str(big_scores) + " scores higher than 40")
         plt.savefig("logs/scores" +".png")
 
-
+      
         if last_game_state['round'] % SAVE_MODEL_EVERY == 0:
             checkpoint = {
                 'n_round': last_game_state['round'],  # Save the current round number

@@ -9,7 +9,7 @@ import logging
 import settings
 from .exploration_strategies import *
 from .config import *
-
+from .train import reward_from_events
 def setup(self):
     """
     Setup your code. This is called once when loading each agent.
@@ -61,6 +61,8 @@ def setup(self):
         # with open(MODEL_SAVE_PATH, "rb") as file:
         #     self.policy_net = pickle.load(file)
 
+    self.round_custom_scores = []
+
 def act(self, game_state: dict) -> str:
     """
     Your agent should parse the input, think, and take a decision.
@@ -81,6 +83,10 @@ def act(self, game_state: dict) -> str:
  
     self.logger.info(f"Number of parameters in the model: {self.policy_net.number_of_params()}")
     self.logger.info(f"Feature space size: {self.policy_net.dqn_input_size}")
+
+
+    if game_state["step"] == settings.MAX_STEPS:
+        self.logger.info("Game has been finished.")
 
     if self.train:
         random_prob = self.epsilon_update_strategy.epsilon
