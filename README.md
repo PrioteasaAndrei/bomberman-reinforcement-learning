@@ -54,7 +54,6 @@ Steps:
 - [ ] improve feature space by using some of the defined features from maverick + Bomberbrains
 - [ ] define a way to test our CNN network on gogle colab with batch_size 64 and 800 000 training steps
 - [ ] find out why the agent chooses WAIT after certain number of steps
-- [ ] why is linear decay not linear?
 - [ ] add the distance between updating the target newtork and the policy network as a hyperparam and plot the network performance based on this param (try per episodes and per steps)
 - [ ] fix problem that softmax doeesnt output probs that sum up to 1 (very close to 1). Might be the dim argument in the softmax or some other numerical bullshit
 - [ ] IMPORTANT: adjust linear decay steps to the number of steps we estimate to have for a number of training rounds; test the number of decay steps compared to training rounds
@@ -65,6 +64,7 @@ Steps:
 
 
 # Solved TODOs
+- [X] why is linear decay not linear?
 - [X] create a training script (bash) that train our agent with no gui trough the given 4 scenarios
 - [X] in the train_setup and setup (callback) functions initialize and load the models, initialize the optimizer and loss function, initialize the ReplayMemory
 - [X] write a function that saves and loads the model at the end of a training cycle (.pth or pickle whatever works)
