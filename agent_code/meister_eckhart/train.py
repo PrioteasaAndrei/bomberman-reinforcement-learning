@@ -29,11 +29,12 @@ def setup_training(self):
     self.losses = []
     self.scores = []
     self.round_scores = 0
+    self.waited_times = 0
 
     self.position_history = deque(maxlen=POSITION_HISTORY_SIZE)
 
     self.round_custom_scores = []
-
+    
     self.epsilon_values = []
 
         

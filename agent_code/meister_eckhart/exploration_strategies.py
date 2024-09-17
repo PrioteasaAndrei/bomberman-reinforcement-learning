@@ -3,7 +3,9 @@ import math
 class EpsilonGreedyStrategy:
     def __init__(self, start_epsilon: float, min_epsilon: float):
         self.epsilon = start_epsilon
+        self.start_epsilon = start_epsilon
         self.min_epsilon = min_epsilon
+        
 
     def update_epsilon(self, step: int):
         """
@@ -20,7 +22,7 @@ class LinearDecayStrategy(EpsilonGreedyStrategy):
     def update_epsilon(self, step: int):
         self.epsilon = max(
             self.min_epsilon,
-            self.epsilon - (self.epsilon - self.min_epsilon) / self.decay_steps
+            self.epsilon - (self.start_epsilon-self.min_epsilon)/self.decay_steps
         )
 
 class ExponentialDecayStrategy(EpsilonGreedyStrategy):

@@ -52,8 +52,8 @@ def setup(self):
 
         self.logger.info(f"Number of parameters in the model: {self.policy_net.number_of_params()}")
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
-        # self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=1000)
-        self.epsilon_update_strategy = ExponentialDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_rate=0.999)
+        self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=DECAY_STEPS)
+        #self.epsilon_update_strategy = ExponentialDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_rate=0.999)
     else:
         self.logger.info("Loading model from saved state for inference.")
         self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
@@ -87,7 +87,7 @@ def act(self, game_state: dict) -> str:
 
     if self.train:
         random_prob = self.epsilon_update_strategy.epsilon
-        self.epsilon_update_strategy.update_epsilon(3) # step is irelevant for linear decay
+        self.epsilon_update_strategy.update_epsilon(game_state["step"]) # step is irelevant for linear decay
         self.logger.info(f"Epsilon: {random_prob}")
         if random.random() < random_prob:
             self.logger.debug("Choosing action purely at random.")

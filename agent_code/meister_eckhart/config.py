@@ -22,7 +22,7 @@ TRAIN_DEVICE = torch.device(
 LEARNING_RATE = 0.0001
 MODEL_SAVE_PATH = "saved-model.pth.tar"
 # set to False if you don't want to train further the saved model
-TRAIN_FROM_CHECKPOINT = True
+TRAIN_FROM_CHECKPOINT = False
 
 # Hyper parameters -- DO modify
 RECORD_ENEMY_TRANSITIONS = 1.0 # record enemy transitions with probability ...
@@ -35,6 +35,7 @@ TRAIN_EPOCHS = 10_000
 ROUND_TO_PLOT = 2 #default 200
 SAVE_MODEL_EVERY = 100
 UPDATE_TARGET_EVERY = 100
+DECAY_STEPS = 1000
 
 CROP_SIZE = 7
 
