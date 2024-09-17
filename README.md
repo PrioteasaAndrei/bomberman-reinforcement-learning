@@ -56,6 +56,7 @@ Steps:
 - [ ] find out why the agent chooses WAIT after certain number of steps
 - [ ] add the distance between updating the target newtork and the policy network as a hyperparam and plot the network performance based on this param (try per episodes and per steps)
 - [ ] fix problem that softmax doeesnt output probs that sum up to 1 (very close to 1). Might be the dim argument in the softmax or some other numerical bullshit
+- [ ] why is linear decay numerically unstable even with decay_steps = 1_000?
 - [ ] IMPORTANT: adjust linear decay steps to the number of steps we estimate to have for a number of training rounds; test the number of decay steps compared to training rounds
 - [ ] IMPORTANT: we update target net every 100 rounds, isnt that too big? Test this maybe make it smaller
 - [ ] merge actually training into master and start working on master
