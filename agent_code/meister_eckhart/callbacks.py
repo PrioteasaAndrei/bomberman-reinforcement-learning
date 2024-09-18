@@ -28,13 +28,13 @@ def setup(self):
     if not self.train:
         TRAIN_FROM_CHECKPOINT = False
     
-    if self.train and os.path.isfile(MODEL_SAVE_PATH) and TRAIN_FROM_CHECKPOINT:
+    if self.train and os.path.isfile(MODEL_LOAD_PATH) and TRAIN_FROM_CHECKPOINT:
         self.logger.info("Loading model from saved state for further training.")
         self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
         self.target_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
         # load the checkpoint
-        checkpoint = torch.load(MODEL_SAVE_PATH)
+        checkpoint = torch.load(MODEL_LOAD_PATH)
         # restore model state, optimizer state, loss and epoch (if needed)
         self.policy_net.load_state_dict(checkpoint['model_state_dict'])
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -45,7 +45,11 @@ def setup(self):
         # set update strategy
         # could also be saved at checkpoint
         self.epsilon_update_strategy = checkpoint['epsilon_strategy']
-    elif self.train or not os.path.isfile(MODEL_SAVE_PATH):
+
+        if REINITIALIZE_EPSILON:
+          self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=0.7, min_epsilon=0.1, decay_steps=10 * DECAY_STEPS)
+      
+    elif self.train or not os.path.isfile(MODEL_LOAD_PATH):
         self.logger.info("Setting up model from scratch.")
         self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
         self.target_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
@@ -57,11 +61,9 @@ def setup(self):
     else:
         self.logger.info("Loading model from saved state for inference.")
         self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
-        checkpoint = torch.load(MODEL_SAVE_PATH)
+        checkpoint = torch.load(MODEL_LOAD_PATH)
         self.policy_net.load_state_dict(checkpoint['model_state_dict'])
 
-        if REINITIALIZE_EPSILON:
-            self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=0.6, min_epsilon=0.1, decay_steps=DECAY_STEPS)
         # with open(MODEL_SAVE_PATH, "rb") as file:
         #     self.policy_net = pickle.load(file)
 

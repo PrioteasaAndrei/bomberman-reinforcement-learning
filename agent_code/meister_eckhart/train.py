@@ -37,6 +37,9 @@ def setup_training(self):
     
     self.epsilon_values = []
 
+    self.crates_destroyed_per_round = 0
+    self.crates_destroyed_list = []
+
         
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
@@ -64,12 +67,14 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     avoided_self_bomb_reward(self, old_game_state, events)
     into_out_of_blast(self, old_game_state, new_game_state, events)
     avoid_wiggling(self, events)
+    placed_bomb_in_corner(old_game_state=old_game_state, events=events)
 
     # state_to_features is defined in callbacks.py
     self.memory.append(Transition(state_to_features(old_game_state, logger = self.logger), self_action, state_to_features(new_game_state, logger = self.logger), reward_from_events(self, events)))
     self.round_custom_scores.append(reward_from_events(self, events))
     self.round_scores += get_score(events)
     self.epsilon_values.append(self.epsilon_update_strategy.epsilon)
+    self.crates_destroyed_per_round += Counter(events)['CRATE_DESTROYED']
 
     if self.memory.can_provide_sample(BATCH_SIZE):
         # Train your agent
@@ -94,7 +99,9 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     # self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
     self.memory.append(Transition(state_to_features(last_game_state, logger = self.logger), last_action, None, reward_from_events(self, events)))
     self.scores.append(self.round_scores)
+    self.crates_destroyed_list.append(self.crates_destroyed_per_round)
     self.round_scores = 0
+    self.crates_destroyed_per_round = 0
 
     
 
@@ -118,6 +125,18 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         # Plot the losses
         plt.clf()
 
+        # plot the number of destroyed crates
+        plt.scatter(list(range(len(self.crates_destroyed_list))),self.crates_destroyed_list)
+        plt.xlabel("Training rounds")
+        plt.ylabel("Crates destroyed")
+        plt.title("Crates destroyed")
+        plt.savefig("logs/crates_destroyed" +".png")
+
+        self.crate_destroyed = 0
+
+        plt.clf()
+
+
         # plot the epsilon values
         plt.plot(self.epsilon_values)
         plt.xlabel("Training steps")
@@ -140,7 +159,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         plt.scatter(list(range(len(self.scores))),self.scores)
         ## plot on the same graph the scores which are 50
         plt.scatter([i for i, score in enumerate(self.scores) if score == 50], [score for score in self.scores if score == 50], color = 'red')
-        plt.xlabel("Training steps")
+        plt.xlabel("Training rounds")
         plt.ylabel("Score")
         plt.title("Scores. We have " + str(big_scores) + " scores higher than 40")
         plt.savefig("logs/scores" +".png")

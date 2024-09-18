@@ -19,6 +19,7 @@ OUT_OF_BLAST = 'OUT_OF_BLAST'
 INTO_BLAST = 'INTO_BLAST'
 LONG_WAIT = 'LONG_WAIT'
 WIGGLING = 'WIGGLING'
+PLACED_BOMB_IN_CORNER = 'PLACED_BOMB_IN_CORNER'
 
 # Rewards
 COIN_COLLECTION_REWARD = 10 #default 1
@@ -26,7 +27,7 @@ KILLED_OPPONENT_REWARD = 200
 INVALID_ACTION_REWARD = -100
 KILLED_SELF_REWARD = -100
 GOT_KILLED_REWARD = -50
-CRATE_DESTROYED_REWARD = 0.5
+CRATE_DESTROYED_REWARD = 5
 SURVIVED_ROUND_REWARD = 0.2
 MOVE_REWARD = -0.1
 MOVED_CLOSER_TO_COIN_REWARD = 0.8 #default 0.4
@@ -37,6 +38,7 @@ INTO_BLAST_REWARD = -30
 BOMB_REWARD = 0
 LONG_WAIT_REWARD = -100
 WIGGLING_REWARD = -100
+PLACED_BOMB_IN_CORNER_REWARD = -50
 
 
 GAME_REWARDS = {
@@ -59,7 +61,8 @@ GAME_REWARDS = {
         OUT_OF_BLAST: OUT_OF_BLAST_REWARD,
         INTO_BLAST: INTO_BLAST_REWARD,
         LONG_WAIT: LONG_WAIT_REWARD,
-        WIGGLING: WIGGLING_REWARD
+        WIGGLING: WIGGLING_REWARD,
+        PLACED_BOMB_IN_CORNER: PLACED_BOMB_IN_CORNER_REWARD
     }
 
 def avoid_long_wait(self, events: List[str]):
@@ -171,3 +174,12 @@ def moved_towards_coin_reward(self, old_game_state, game_state, events: List[str
         events.append(MOVED_CLOSER_TO_COIN)
 
     
+def placed_bomb_in_corner(old_game_state, events: List[str]):
+    """
+    Rewards the agent for placing a bomb in a corner.
+    """
+
+    if e.BOMB_DROPPED in events:
+        bomb_position = old_game_state['self'][3]
+        if bomb_position in [(1,1), (1,15), (15,1), (15,15)]:
+            events.append('PLACED_BOMB_IN_CORNER')
