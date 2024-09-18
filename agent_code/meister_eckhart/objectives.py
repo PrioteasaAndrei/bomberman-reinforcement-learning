@@ -26,7 +26,7 @@ def update_hyperparams(lr, gamma, target_update, decay_steps):
 
 def run_training_scenario(no_rounds=NO_ROUNDS):
     
-    train_cmd = f'python main.py play --agents meister_eckhart --train 1 --n-rounds {no_rounds} --scenario loot-crate --no-gui'
+    train_cmd = f'python main.py play --agents meister_eckhart --train 1 --n-rounds {no_rounds} --scenario {SCENARIO} --no-gui'
     # os.chdir('../..')
     os.system(train_cmd)
     # os.chdir('agent_code/meister_eckhart')
