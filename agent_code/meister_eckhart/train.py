@@ -30,6 +30,7 @@ def setup_training(self):
     self.memory = ReplayMemory(MEMORY_SIZE)
     if SCENARIO == 'coin-heaven':
         self.coin_heaven_memory = []
+        self.coin_heaven_buffer_size = 0
     self.losses = []
     self.scores = []
     self.round_scores = 0
@@ -76,8 +77,11 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     # state_to_features is defined in callbacks.py
     self.memory.append(Transition(state_to_features(old_game_state, logger = self.logger), self_action, state_to_features(new_game_state, logger = self.logger), reward_from_events(self, events)))
     
-    #change the probability
-    if SCENARIO == 'coin-heaven' and new_game_state['round'] > THRESHOLD and (random.random() < 1/10) and len(self.coin_heaven_memory) < MEMORY_SIZE_COIN_HEAVEN:
+    
+    if len(self.coin_heaven_memory) == MEMORY_SIZE_COIN_HEAVEN:
+        self.logger.info("Buffer full now")
+
+    if SCENARIO == 'coin-heaven' and new_game_state['round'] > THRESHOLD and (random.random() < 1/5) and len(self.coin_heaven_memory) < MEMORY_SIZE_COIN_HEAVEN:
         self.coin_heaven_memory.append(Transition(state_to_features(old_game_state, logger = self.logger), self_action, state_to_features(new_game_state, logger = self.logger), reward_from_events(self, events)))
     
     self.round_custom_scores.append(reward_from_events(self, events))
