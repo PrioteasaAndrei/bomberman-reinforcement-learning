@@ -27,7 +27,7 @@ KILLED_OPPONENT_REWARD = 200
 INVALID_ACTION_REWARD = -100
 KILLED_SELF_REWARD = -100
 GOT_KILLED_REWARD = -50
-CRATE_DESTROYED_REWARD = 5
+CRATE_DESTROYED_REWARD = 8
 SURVIVED_ROUND_REWARD = 0.2
 MOVE_REWARD = -0.1
 MOVED_CLOSER_TO_COIN_REWARD = 0.8 #default 0.4
@@ -35,10 +35,10 @@ MOVED_FURTHER_FROM_COIN_REWARD = -1 #default -0.6
 AVOIDED_SELF_BOMB_REWARD = 0
 OUT_OF_BLAST_REWARD = 20
 INTO_BLAST_REWARD = -30
-BOMB_REWARD = 0
+BOMB_REWARD = -0.1
 LONG_WAIT_REWARD = -100
 WIGGLING_REWARD = -100
-PLACED_BOMB_IN_CORNER_REWARD = -50
+PLACED_BOMB_IN_CORNER_REWARD = -100
 
 
 GAME_REWARDS = {
@@ -174,7 +174,7 @@ def moved_towards_coin_reward(self, old_game_state, game_state, events: List[str
         events.append(MOVED_CLOSER_TO_COIN)
 
     
-def placed_bomb_in_corner(old_game_state, events: List[str]):
+def placed_bomb_in_corner(self,old_game_state, events: List[str]):
     """
     Rewards the agent for placing a bomb in a corner.
     """
@@ -183,3 +183,4 @@ def placed_bomb_in_corner(old_game_state, events: List[str]):
         bomb_position = old_game_state['self'][3]
         if bomb_position in [(1,1), (1,15), (15,1), (15,15)]:
             events.append('PLACED_BOMB_IN_CORNER')
+            self.logger.info(f'Placed bomb in corner at {bomb_position}')

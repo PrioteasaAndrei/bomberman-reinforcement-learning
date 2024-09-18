@@ -118,8 +118,4 @@ When we use our trained model from coin heaven on loot crate we want to have aga
 
 Today's todos:
 
-- [ ] use optuna to find hyper params (lr, decay steps, batch size, other hyper params we have). Claude gives a very good tutorial on that
-- [ ] continue training the coin_heaven model on crates to see how it reacts; if necessary implement more features / rewards
-- [ ] use a smaller learning rate for the new scenario
-- [ ] keep in the training buffer some transitions from the last scenario
-- [ ] start with a smaller exploration rate than before
+- [ ] add number of steps in objectives to the functions

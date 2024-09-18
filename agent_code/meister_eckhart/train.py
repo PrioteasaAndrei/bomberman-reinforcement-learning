@@ -40,6 +40,8 @@ def setup_training(self):
     self.crates_destroyed_per_round = 0
     self.crates_destroyed_list = []
 
+    self.round_reward = 0
+    self.running_reward = []
         
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
@@ -67,7 +69,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     avoided_self_bomb_reward(self, old_game_state, events)
     into_out_of_blast(self, old_game_state, new_game_state, events)
     avoid_wiggling(self, events)
-    placed_bomb_in_corner(old_game_state=old_game_state, events=events)
+    placed_bomb_in_corner(self,old_game_state=old_game_state, events=events)
 
     # state_to_features is defined in callbacks.py
     self.memory.append(Transition(state_to_features(old_game_state, logger = self.logger), self_action, state_to_features(new_game_state, logger = self.logger), reward_from_events(self, events)))
@@ -75,6 +77,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     self.round_scores += get_score(events)
     self.epsilon_values.append(self.epsilon_update_strategy.epsilon)
     self.crates_destroyed_per_round += Counter(events)['CRATE_DESTROYED']
+    self.round_reward += reward_from_events(self, events)
 
     if self.memory.can_provide_sample(BATCH_SIZE):
         # Train your agent
@@ -100,8 +103,10 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.memory.append(Transition(state_to_features(last_game_state, logger = self.logger), last_action, None, reward_from_events(self, events)))
     self.scores.append(self.round_scores)
     self.crates_destroyed_list.append(self.crates_destroyed_per_round)
+    self.running_reward.append(self.round_reward)
     self.round_scores = 0
     self.crates_destroyed_per_round = 0
+    self.round_reward = 0
 
     
 
@@ -174,9 +179,11 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
                 'epsilon_strategy': self.epsilon_update_strategy
             }
             torch.save(checkpoint, MODEL_SAVE_PATH)
-            # # Store the model
-            # with open("my-saved-model.pt", "wb") as file:
-            #     pickle.dump(self.policy_net, file)
+
+
+            # also save the running reward | TODO: is it ok to save every game
+            with open("logs/running_reward.txt", "w") as file:
+                file.write(str(np.mean(self.running_reward)))
 
   
 '''

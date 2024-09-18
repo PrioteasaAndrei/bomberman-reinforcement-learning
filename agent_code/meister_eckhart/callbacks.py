@@ -47,8 +47,10 @@ def setup(self):
         self.epsilon_update_strategy = checkpoint['epsilon_strategy']
 
         if REINITIALIZE_EPSILON:
-          self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=0.7, min_epsilon=0.1, decay_steps=10 * DECAY_STEPS)
-      
+            self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=20 * DECAY_STEPS)
+            # reinitialize optimizer as well
+            self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE / 1.4)
+
     elif self.train or not os.path.isfile(MODEL_LOAD_PATH):
         self.logger.info("Setting up model from scratch.")
         self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
@@ -59,9 +61,9 @@ def setup(self):
         self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=DECAY_STEPS)
         #self.epsilon_update_strategy = ExponentialDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_rate=0.999)
     else:
-        self.logger.info("Loading model from saved state for inference.")
+        self.logger.info("Loading model from saved state for inference. Loaded model is {}".format(MODEL_SAVE_PATH))
         self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
-        checkpoint = torch.load(MODEL_LOAD_PATH)
+        checkpoint = torch.load(MODEL_SAVE_PATH) # just for inference use the latest trained model
         self.policy_net.load_state_dict(checkpoint['model_state_dict'])
 
         # with open(MODEL_SAVE_PATH, "rb") as file:
@@ -108,7 +110,6 @@ def act(self, game_state: dict) -> str:
     return ACTIONS[np.argmax(outputs_list)]
 
 
-# TODO: Check this
 def crop_map(map, agent_pos, crop_size, logger=None):
     """
     Crop the map around the agent position. The agent is in the middle of the cropped map. The cropped map is a square.
