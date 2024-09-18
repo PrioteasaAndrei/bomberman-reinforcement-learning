@@ -15,6 +15,8 @@ import torch
 from .rewards import *
 from .config import *
 
+
+
 def setup_training(self):
     """
     Initialise self for training purpose.
@@ -26,13 +28,15 @@ def setup_training(self):
     # Example: Setup an array that will note transition tuples
     # (s, a, r, s')
     self.memory = ReplayMemory(MEMORY_SIZE)
+    if SCENARIO == 'coin-heaven':
+        self.coin_heaven_memory = []
     self.losses = []
     self.scores = []
     self.round_scores = 0
     self.waited_times = 0
 
     self.position_history = deque(maxlen=POSITION_HISTORY_SIZE)
-
+    
     self.round_custom_scores = []
     
     self.epsilon_values = []
@@ -71,11 +75,17 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
 
     # state_to_features is defined in callbacks.py
     self.memory.append(Transition(state_to_features(old_game_state, logger = self.logger), self_action, state_to_features(new_game_state, logger = self.logger), reward_from_events(self, events)))
+    
+    #change the probability
+    if SCENARIO == 'coin-heaven' and new_game_state['round'] > THRESHOLD and (random.random() < 1/10) and len(self.coin_heaven_memory) < MEMORY_SIZE_COIN_HEAVEN:
+        self.coin_heaven_memory.append(Transition(state_to_features(old_game_state, logger = self.logger), self_action, state_to_features(new_game_state, logger = self.logger), reward_from_events(self, events)))
+    
     self.round_custom_scores.append(reward_from_events(self, events))
     self.round_scores += get_score(events)
     self.epsilon_values.append(self.epsilon_update_strategy.epsilon)
     self.crates_destroyed_per_round += Counter(events)['CRATE_DESTROYED']
-
+    
+    
     if self.memory.can_provide_sample(BATCH_SIZE):
         # Train your agent
         self.logger.info("Initiating one step of training...")
@@ -174,6 +184,9 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
                 'epsilon_strategy': self.epsilon_update_strategy
             }
             torch.save(checkpoint, MODEL_SAVE_PATH)
+
+            torch.save(self.coin_heaven_memory, COIN_HEAVEN_SAVE_PATH)
+            
             # # Store the model
             # with open("my-saved-model.pt", "wb") as file:
             #     pickle.dump(self.policy_net, file)
@@ -194,6 +207,11 @@ def enemy_game_events_occurred(self, enemy_name: str, old_enemy_game_state: dict
 #         if enemy_action is not None: # when the enemy is dead
 #             self.rule_based_training_memory.append(Transition(state_to_features(old_enemy_game_state), enemy_action, state_to_features(new_enemy_game_state), reward_from_events(self, enemy_events)))
 
+
+        
+
+
+    
 
 def reward_from_events(self, events: List[str]) -> int:
     """

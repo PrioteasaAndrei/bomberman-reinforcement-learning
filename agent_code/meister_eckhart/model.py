@@ -25,6 +25,9 @@ class ReplayMemory():
     
     def can_provide_sample(self, sample_size: int):
         return len(self.memory) >= sample_size
+    
+    def get_transitions(self):
+        return self.memory
 
 def create_model(input_shape, num_actions, logger, model_type: str):
     if model_type == "JointDQN":
@@ -140,7 +143,7 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device, memory: 
         gamma: The discount factor
         device: The device to run the training step on
     '''
- 
+    
     self.logger.info("Training step...")
 
     if len(memory) < batch_size:
@@ -210,3 +213,4 @@ def train_step(self, batch_size: int, gamma: int, device: torch.device, memory: 
     self.logger.info("Training step done.")
 
     return loss.item()
+
