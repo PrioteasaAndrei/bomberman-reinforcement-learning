@@ -55,7 +55,6 @@ Steps:
 - [ ] define a way to test our CNN network on gogle colab with batch_size 64 and 800 000 training steps
 - [ ] find out why the agent chooses WAIT after certain number of steps
 - [ ] add the distance between updating the target newtork and the policy network as a hyperparam and plot the network performance based on this param (try per episodes and per steps)
-- [ ] fix problem that softmax doeesnt output probs that sum up to 1 (very close to 1). Might be the dim argument in the softmax or some other numerical bullshit
 - [ ] why is linear decay numerically unstable even with decay_steps = 1_000?
 - [ ] IMPORTANT: adjust linear decay steps to the number of steps we estimate to have for a number of training rounds; test the number of decay steps compared to training rounds
 - [ ] IMPORTANT: we update target net every 100 rounds, isnt that too big? Test this maybe make it smaller
@@ -112,3 +111,15 @@ Linear Decay on 400 games with 1000 decay steps produced better agents than Expo
 Running inference only (without 0.1 exploration) gets the agent stuck in wiggling.
 
 We may have a problem with the update time for the target net. 100 rounds of 100 actions each may be too much.
+
+Wed Sep 18 12:52:53 CEST 2024
+
+When we use our trained model from coin heaven on loot crate we want to have again some exploration and exploitation
+
+Today's todos:
+
+- [ ] use optuna to find hyper params (lr, decay steps, batch size, other hyper params we have). Claude gives a very good tutorial on that
+- [ ] continue training the coin_heaven model on crates to see how it reacts; if necessary implement more features / rewards
+- [ ] use a smaller learning rate for the new scenario
+- [ ] keep in the training buffer some transitions from the last scenario
+- [ ] start with a smaller exploration rate than before

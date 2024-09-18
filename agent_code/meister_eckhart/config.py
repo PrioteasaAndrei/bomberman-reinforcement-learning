@@ -23,6 +23,8 @@ LEARNING_RATE = 0.0001
 MODEL_SAVE_PATH = "saved-model.pth.tar"
 # set to False if you don't want to train further the saved model
 TRAIN_FROM_CHECKPOINT = False
+# if you want to reinitialize EpsilonGreedyStrategy
+REINITIALIZE_EPSILON = False
 
 # Hyper parameters -- DO modify
 RECORD_ENEMY_TRANSITIONS = 1.0 # record enemy transitions with probability ...

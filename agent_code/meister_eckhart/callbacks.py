@@ -59,6 +59,9 @@ def setup(self):
         self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
         checkpoint = torch.load(MODEL_SAVE_PATH)
         self.policy_net.load_state_dict(checkpoint['model_state_dict'])
+
+        if REINITIALIZE_EPSILON:
+            self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=0.6, min_epsilon=0.1, decay_steps=DECAY_STEPS)
         # with open(MODEL_SAVE_PATH, "rb") as file:
         #     self.policy_net = pickle.load(file)
 

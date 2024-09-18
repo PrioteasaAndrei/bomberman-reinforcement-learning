@@ -112,3 +112,4 @@ screenshots/*.webm
 replays/
 results/
 agent_code/meister_eckhart/my-saved-model.pt
+agent_code/meister_eckhart/logs/
