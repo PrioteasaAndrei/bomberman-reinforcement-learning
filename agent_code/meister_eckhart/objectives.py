@@ -3,10 +3,10 @@ import os
 from .config import *
 import json
 
-NO_ROUNDS = 1200
-OPTIMIZATION_TRIALS = 300
+NO_ROUNDS = 400
+OPTIMIZATION_TRIALS = 50
 
-def update_hyperparams(lr, gamma, target_update, decay_steps):
+def update_hyperparams(lr, target_update, decay_steps):
     """
     Update the hyperparameters in the hyperparams.json file.
     """
@@ -16,7 +16,7 @@ def update_hyperparams(lr, gamma, target_update, decay_steps):
         config = json.load(f)
     
     config['lr'] = lr
-    config['gamma'] = gamma
+    # config['gamma'] = gamma
     config['target_update'] = target_update
     config['decay_steps'] = decay_steps
 
@@ -32,12 +32,12 @@ def run_training_scenario(no_rounds=NO_ROUNDS):
     # os.chdir('agent_code/meister_eckhart')
 
 
-def run_training(lr, gamma, target_update, decay_steps, no_rounds=NO_ROUNDS):
+def run_training(lr, target_update, decay_steps, no_rounds=NO_ROUNDS):
     '''
     python main.py play --agents meister_eckhart --train 1 --n-rounds 1200 --scenario loot-crate --no-gui
     '''
 
-    update_hyperparams(lr, gamma, target_update, decay_steps)
+    update_hyperparams(lr, target_update, decay_steps)
     run_training_scenario(no_rounds)
 
     # save the running reward
@@ -53,11 +53,11 @@ def objective(trial):
     """
     # Hyperparameters to optimize
     lr = trial.suggest_loguniform("lr", 1e-6, 1e-2)
-    gamma = trial.suggest_float("gamma", 0.9, 0.999)
-    target_update = trial.suggest_int("target_update", 2, 10)
+    # gamma = trial.suggest_float("gamma", 0.9, 0.999)
+    target_update = trial.suggest_int("target_update", 1, 10)
     decay_steps = trial.suggest_int("decay_steps", 1000, 20_000)
     
-    return run_training(lr, gamma, target_update, decay_steps)
+    return run_training(lr, target_update, decay_steps)
 
 def run_hyperparam_optimization():
     study = optuna.create_study(direction="maximize")
