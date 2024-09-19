@@ -118,4 +118,6 @@ When we use our trained model from coin heaven on loot crate we want to have aga
 
 Today's todos:
 
-- [ ] add number of steps in objectives to the functions
+- [ ] fix wiggling reward and check
+- [ ] implement events from bomberbrains: ESCAPING_BOMB_FULLY, ESCAPING_BOMB_PARTIALLY, RUNNING_INTO_BOMB, RUNNING_INTO_BOMB_PARTIALLY, NOT_LEAVING_BLAST, RUNNING_INTO_EXPLOSION 
+- [ ] finish implementing function from rewards for the previous mentioned events

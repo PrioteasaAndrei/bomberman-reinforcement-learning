@@ -1,1 +1,7 @@
-{"lr": 1.7508990837807958e-06, "gamma": 0.9073560032685217, "target_update": 8, "decay_steps": 12369}
+{
+    "lr": 8e-3,
+    "gamma": 0.999,
+    "target_update": 6,
+    "decay_steps": 40000,
+    "start_epsilon": 1.0
+}

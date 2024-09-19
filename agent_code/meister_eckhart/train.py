@@ -43,6 +43,9 @@ def setup_training(self):
     self.round_reward = 0
     self.running_steps = 0
     self.running_reward = []
+    
+
+    self.survived_steps_per_round = []
         
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
@@ -107,6 +110,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.crates_destroyed_list.append(self.crates_destroyed_per_round)
     self.running_reward.append(self.round_reward / self.running_steps)
     self.logger.info(f"Round {last_game_state['round']} ended with score {self.round_reward / self.running_steps} and score {self.round_scores}")
+    self.survived_steps_per_round.append(self.running_steps)
+    
     self.round_scores = 0
     self.crates_destroyed_per_round = 0
     self.round_reward = 0
@@ -127,10 +132,19 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     plt.savefig("logs/custom_rewards" +".png")
     self.round_custom_scores = []
 
-
     if last_game_state['round'] % ROUND_TO_PLOT == 0:
         # Plot the losses
         plt.clf()
+
+        # plot the number of steps alive
+        plt.scatter(list(range(len(self.survived_steps_per_round))),self.survived_steps_per_round)
+        plt.xlabel("Training rounds")
+        plt.ylabel("Steps alive")
+        plt.title("Steps alive")
+        plt.savefig("logs/survived_steps" +".png")
+
+        plt.clf()
+
 
         # plot the number of destroyed crates
         plt.scatter(list(range(len(self.crates_destroyed_list))),self.crates_destroyed_list)
