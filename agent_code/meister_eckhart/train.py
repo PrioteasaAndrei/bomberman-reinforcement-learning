@@ -41,6 +41,7 @@ def setup_training(self):
     self.crates_destroyed_list = []
 
     self.round_reward = 0
+    self.running_steps = 0
     self.running_reward = []
         
 
@@ -71,7 +72,8 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     avoid_wiggling(self, events)
     placed_bomb_in_corner(self,old_game_state=old_game_state, events=events)
 
-    # state_to_features is defined in callbacks.py
+    self.running_steps += 1
+
     self.memory.append(Transition(state_to_features(old_game_state, logger = self.logger), self_action, state_to_features(new_game_state, logger = self.logger), reward_from_events(self, events)))
     self.round_custom_scores.append(reward_from_events(self, events))
     self.round_scores += get_score(events)
@@ -103,12 +105,12 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.memory.append(Transition(state_to_features(last_game_state, logger = self.logger), last_action, None, reward_from_events(self, events)))
     self.scores.append(self.round_scores)
     self.crates_destroyed_list.append(self.crates_destroyed_per_round)
-    self.running_reward.append(self.round_reward)
+    self.running_reward.append(self.round_reward / self.running_steps)
+    self.logger.info(f"Round {last_game_state['round']} ended with score {self.round_reward / self.running_steps} and score {self.round_scores}")
     self.round_scores = 0
     self.crates_destroyed_per_round = 0
     self.round_reward = 0
-
-    
+    self.running_steps = 0
 
     # update target net
     if last_game_state['round'] % UPDATE_TARGET_EVERY == 0:
@@ -181,9 +183,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
             torch.save(checkpoint, MODEL_SAVE_PATH)
 
 
-            # also save the running reward | TODO: is it ok to save every game
-            with open("logs/running_reward.txt", "w") as file:
-                file.write(str(np.mean(self.running_reward)))
+        with open("logs/running_reward.txt", "w") as file:
+            file.write(str(np.mean(self.running_reward)))
 
   
 '''
