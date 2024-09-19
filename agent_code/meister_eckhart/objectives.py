@@ -53,8 +53,8 @@ def objective(trial):
     """
     # Hyperparameters to optimize
     lr = trial.suggest_loguniform("lr", 1e-6, 1e-2)
-    gamma = trial.suggest_float("gamma", 0.9, 0.999)
-    target_update = trial.suggest_int("target_update", 2, 10)
+    gamma = trial.suggest_float("gamma", 0.6, 0.999) # modify lower bound here to 0.6
+    target_update = trial.suggest_int("target_update", 2, 20) # modify upper bound here to 20
     decay_steps = trial.suggest_int("decay_steps", 1000, 20_000)
     
     return run_training(lr, gamma, target_update, decay_steps)

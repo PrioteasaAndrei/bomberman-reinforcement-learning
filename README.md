@@ -63,6 +63,7 @@ Steps:
 - [ ] implement new useful events and create functions to check if they are fullfilled. See restrictions in pdf and in Architecture
 
 
+
 # Solved TODOs
 - [X] why is linear decay not linear?
 - [X] create a training script (bash) that train our agent with no gui trough the given 4 scenarios
@@ -119,3 +120,8 @@ When we use our trained model from coin heaven on loot crate we want to have aga
 Today's todos:
 
 - [ ] add number of steps in objectives to the functions
+
+Thursday Sep 19 2024
+- Possible additional hyperparameters:
+    -  nr of convulutional layers + corresponding out_channels and kernel_size
+    -  nr of linear layers + nr of neurons in each layer
