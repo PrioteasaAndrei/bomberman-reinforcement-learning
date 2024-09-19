@@ -24,6 +24,10 @@ PLACED_BOMB_IN_CORNER = 'PLACED_BOMB_IN_CORNER'
 ENEMY_IN_RANGE_OF_BOMB = 'ENEMY_IN_RANGE_OF_BOMB'
 CRATES_IN_RANGE_OF_BOMB = 'CRATES_IN_RANGE_OF_BOMB'
 WILL_EXPLODE_MORE_THAN_3_CRATES = 'WILL_EXPLODE_MORE_THAN_3_CRATES'
+INTO_EXPLOSION = 'INTO_EXPLOSION'
+NOT_LEAVING_EXPLOSION = 'NOT_LEAVING_EXPLOSION'
+MOVED_CLOSER_TO_BOMB = 'MOVED_CLOSER_TO_BOMB'
+MOVED_FURTHER_FROM_BOMB = 'MOVED_FURTHER_FROM_BOMB'
 
 # Rewards
 COIN_COLLECTION_REWARD = 10 
@@ -37,8 +41,8 @@ MOVE_REWARD = -0.1
 MOVED_CLOSER_TO_COIN_REWARD = 0.8 #default 0.4
 MOVED_FURTHER_FROM_COIN_REWARD = -1 #default -0.6
 AVOIDED_SELF_BOMB_REWARD = 0
-OUT_OF_BLAST_REWARD = 50
-INTO_BLAST_REWARD = -60
+OUT_OF_BLAST_REWARD = 50    #not in blast tiles anymore
+INTO_BLAST_REWARD = -60     #went back into blast tiles
 BOMB_REWARD = -0.1
 LONG_WAIT_REWARD = -100
 WIGGLING_REWARD = -150
@@ -46,6 +50,14 @@ PLACED_BOMB_IN_CORNER_REWARD = -100
 WILL_EXPLODE_MORE_THAN_3_CRATES_REWARD = 30
 CRATES_IN_RANGE_OF_BOMB_REWARD = 12
 ENEMY_IN_RANGE_OF_BOMB_REWARD = 50
+
+#Modify
+INTO_EXPLOSION_REWARD = 0       #went back into blast tiles as the bombs explodes, killing the agent
+NOT_LEAVING_EXPLOSION_REWARD = 0    #waiting or invalid action in blast tiles
+
+#Coded very inefficiently, commented out
+MOVED_CLOSER_TO_BOMB_REWARD = 0     #approaching bomb
+MOVED_FURTHER_FROM_BOMB_REWARD = 0  #going away from bomb
 
 GAME_REWARDS = {
         e.COIN_COLLECTED: COIN_COLLECTION_REWARD,
@@ -71,7 +83,11 @@ GAME_REWARDS = {
         PLACED_BOMB_IN_CORNER: PLACED_BOMB_IN_CORNER_REWARD,
         WILL_EXPLODE_MORE_THAN_3_CRATES: WILL_EXPLODE_MORE_THAN_3_CRATES_REWARD,
         CRATES_IN_RANGE_OF_BOMB: CRATES_IN_RANGE_OF_BOMB_REWARD,
-        ENEMY_IN_RANGE_OF_BOMB: ENEMY_IN_RANGE_OF_BOMB_REWARD
+        ENEMY_IN_RANGE_OF_BOMB: ENEMY_IN_RANGE_OF_BOMB_REWARD,
+        INTO_EXPLOSION: INTO_EXPLOSION_REWARD,
+        NOT_LEAVING_EXPLOSION: NOT_LEAVING_EXPLOSION_REWARD,
+        MOVED_CLOSER_TO_BOMB: MOVED_CLOSER_TO_BOMB_REWARD,
+        MOVED_FURTHER_FROM_BOMB: MOVED_FURTHER_FROM_BOMB_REWARD
 
     }
 
@@ -124,14 +140,70 @@ def avoided_self_bomb_reward(self, game_state, events: List[str]):
         events.append(AVOIDED_SELF_BOMB)
 
 
-def into_out_of_blast(self, old_game_state, new_game_state, events: List[str]):
+def bfs_to_bombs(current_position: Tuple[int, int], objective_coordinates: List[Tuple[int,int]], game_map) -> Tuple[int, int]:
+    """
+    Rewards the agent for moving towards the objective.
+    returns: position of the closest objective as tuple
+    """
+    moves = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+    visited_cells = np.zeros_like(game_map) + np.abs(np.where(game_map == 1, 0, game_map))
+    bfs_queue = deque()
+    bfs_queue.append(((current_position, 0)))
+
+    while bfs_queue:
+        current_position, distance = bfs_queue.popleft()
+        visited_cells[current_position] = 1
+        if current_position in objective_coordinates:
+            return current_position
+
+        for move in moves:
+            next_position = (current_position[0] + move[0], current_position[1] + move[1])
+            if 0 <= next_position[0] < game_map.shape[0] and 0 <= next_position[1] < game_map.shape[1] and \
+                game_map[next_position] == 0 and not visited_cells[next_position]:
+                bfs_queue.append((next_position, distance + 1))
+
+    return (-1,-1)  
+
+def blast_events(self, old_game_state, new_game_state, events: List[str]):
     """
     Rewards the agent for getting out of the future blast of its own bomb and penalizes for getting into the future blast of its own bomb.
     """
-    if(old_game_state['self'][3] in get_blasts(old_game_state['bombs'], old_game_state['field']) and new_game_state['self'][3] not in get_blasts(new_game_state['bombs'], new_game_state['field']) ):
+    old_coords = old_game_state['self'][3]
+    new_coords = new_game_state['self'][3]
+    old_blasts = get_blasts(old_game_state['bombs'], old_game_state['field'])
+    new_blasts = get_blasts(new_game_state['bombs'], new_game_state['field'])
+    
+    #TODO: Make code less inefficient
+    # old_bombs = old_game_state['bombs']
+    # old_bombs = list(coords for coords,_ in old_bombs)
+    # new_bombs = new_game_state['bombs']
+    # new_bombs = list(coords for coords,_ in new_bombs)
+
+    # old_closest_bomb = bfs_to_bombs(old_coords, old_bombs, old_game_state['field'])
+    # new_closest_bomb = bfs_to_bombs(new_coords, new_bombs, new_game_state['field'])
+    # old_distance = np.linalg.norm(np.array(old_coords) - np.array(old_closest_bomb), ord=1)
+    # new_distance = np.linalg.norm(np.array(new_coords) - np.array(new_closest_bomb), ord=1)
+    
+
+    if(old_coords in old_blasts) and (new_coords not in new_blasts):
         events.append(OUT_OF_BLAST)
-    if(old_game_state['self'][3] not in get_blasts(old_game_state['bombs'], old_game_state['field']) and new_game_state['self'][3] in get_blasts(new_game_state['bombs'], new_game_state['field']) ):
+    if(old_coords not in old_blasts) and (new_coords in new_blasts):
         events.append(INTO_BLAST)
+    
+    # if(old_coords in old_blasts) and (old_distance < new_distance):
+    #     events.append(MOVED_CLOSER_TO_BOMB)
+
+    # if(old_coords in old_blasts) and (old_distance > new_distance):
+    #     events.append(MOVED_FURTHER_FROM_BOMB)
+
+    if(new_coords in new_blasts) and ((e.WAITED or e.INVALID_ACTION in events)):
+        events.append(NOT_LEAVING_EXPLOSION)
+
+    if(old_coords not in old_blasts) and ((e.KILLED_SELF or e.GOT_KILLED) in events):
+        events.append(INTO_EXPLOSION)
+    
+
+  
 
 
 def bfs_to_objective(current_position: Tuple[int, int], objective_coordinates: List[Tuple[int,int]], game_map, explosion_map) -> Tuple[int, int]:
@@ -360,8 +432,8 @@ def get_bomb_reward(game_state: dict , events: List[str]) -> int:
         if bomb_feature >= 3:
             events.append(WILL_EXPLODE_MORE_THAN_3_CRATES)
 
-
-# TODO: fix this
+"""
+# TODO: Check blast_events for correctness
 def escape_bomb(self, old_game_state, new_game_state, events):
     old_bomb_blasts_coord = [coords for coords, _ in get_bomb_blasts(old_game_state['bombs'], old_game_state['field'])]
     new_bomb_blasts_coord = [coords for coords, _ in get_bomb_blasts(new_game_state['bombs'], new_game_state['field'])]
@@ -399,3 +471,4 @@ def escape_bomb(self, old_game_state, new_game_state, events):
                     not e.BOMB_DROPPED in events:
                 events.append(RUNNING_INTO_BOMB_PARTLY)
 
+"""

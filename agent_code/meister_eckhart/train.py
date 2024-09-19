@@ -71,7 +71,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     moved_towards_coin_reward(self, old_game_state, new_game_state, events)
     avoid_long_wait(self, events)
     avoided_self_bomb_reward(self, old_game_state, events)
-    into_out_of_blast(self, old_game_state, new_game_state, events)
+    blast_events(self, old_game_state, new_game_state, events)
     avoid_wiggling(self, events)
     placed_bomb_in_corner(self,old_game_state=old_game_state, events=events)
 
