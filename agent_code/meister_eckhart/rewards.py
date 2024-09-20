@@ -130,7 +130,9 @@ def get_blasts(bombs, field):
     for bomb in bombs :
         bomb = Bomb(bomb[0], "", 2, settings.BOMB_POWER, "")            
         blasted_fields.append(bomb.get_blast_coords(field))
-    return blasted_fields
+    if(blasted_fields == []):
+        return []
+    return blasted_fields[0]
 
 def avoided_self_bomb_reward(self, game_state, events: List[str]):
     """
@@ -169,7 +171,7 @@ def bfs_to_bombs(current_position: Tuple[int, int], objective_coordinates: List[
 
     return (-1,-1)  
 
-def blast_events(self, old_game_state, new_game_state, events: List[str]):
+def blast_events(self, old_game_state, new_game_state, events: List[str], logger):
     """
     Rewards the agent for getting out of the future blast of its own bomb and penalizes for getting into the future blast of its own bomb.
     """
