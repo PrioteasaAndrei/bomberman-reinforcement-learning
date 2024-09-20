@@ -145,14 +145,19 @@ def bfs_to_bombs(current_position: Tuple[int, int], objective_coordinates: List[
     Rewards the agent for moving towards the objective.
     returns: position of the closest objective as tuple
     """
+    if (current_position in objective_coordinates): #We are standing on a bomb
+        return current_position
+    
     moves = [(0, -1), (0, 1), (-1, 0), (1, 0)]
     visited_cells = np.zeros_like(game_map) + np.abs(np.where(game_map == 1, 0, game_map))
     bfs_queue = deque()
     bfs_queue.append(((current_position, 0)))
+    checked_fields = 0
 
-    while bfs_queue:
+    while bfs_queue and checked_fields <= 50:
         current_position, distance = bfs_queue.popleft()
         visited_cells[current_position] = 1
+        checked_fields += 1
         if current_position in objective_coordinates:
             return current_position
 
@@ -173,16 +178,25 @@ def blast_events(self, old_game_state, new_game_state, events: List[str]):
     old_blasts = get_blasts(old_game_state['bombs'], old_game_state['field'])
     new_blasts = get_blasts(new_game_state['bombs'], new_game_state['field'])
     
-    #TODO: Make code less inefficient
-    # old_bombs = old_game_state['bombs']
-    # old_bombs = list(coords for coords,_ in old_bombs)
-    # new_bombs = new_game_state['bombs']
-    # new_bombs = list(coords for coords,_ in new_bombs)
+    
+    #TODO: Maybee make code less inefficient
+    old_bombs = old_game_state['bombs']
+    new_bombs = new_game_state['bombs']
+    if (old_bombs != None and new_bombs != None):
+        old_bombs = list(coords for coords,_ in old_bombs)
+        new_bombs = list(coords for coords,_ in new_bombs)
 
-    # old_closest_bomb = bfs_to_bombs(old_coords, old_bombs, old_game_state['field'])
-    # new_closest_bomb = bfs_to_bombs(new_coords, new_bombs, new_game_state['field'])
-    # old_distance = np.linalg.norm(np.array(old_coords) - np.array(old_closest_bomb), ord=1)
-    # new_distance = np.linalg.norm(np.array(new_coords) - np.array(new_closest_bomb), ord=1)
+        old_closest_bomb = bfs_to_bombs(old_coords, old_bombs, old_game_state['field'])
+        new_closest_bomb = bfs_to_bombs(new_coords, new_bombs, new_game_state['field'])
+        old_distance = np.linalg.norm(np.array(old_coords) - np.array(old_closest_bomb), ord=1)
+        new_distance = np.linalg.norm(np.array(new_coords) - np.array(new_closest_bomb), ord=1)
+
+        if(old_coords in old_blasts) and (old_distance < new_distance):
+            events.append(MOVED_CLOSER_TO_BOMB)
+
+        if(old_coords in old_blasts) and (old_distance > new_distance):
+            events.append(MOVED_FURTHER_FROM_BOMB)
+        
     
 
     if(old_coords in old_blasts) and (new_coords not in new_blasts):
@@ -190,11 +204,6 @@ def blast_events(self, old_game_state, new_game_state, events: List[str]):
     if(old_coords not in old_blasts) and (new_coords in new_blasts):
         events.append(INTO_BLAST)
     
-    # if(old_coords in old_blasts) and (old_distance < new_distance):
-    #     events.append(MOVED_CLOSER_TO_BOMB)
-
-    # if(old_coords in old_blasts) and (old_distance > new_distance):
-    #     events.append(MOVED_FURTHER_FROM_BOMB)
 
     if(new_coords in new_blasts) and ((e.WAITED or e.INVALID_ACTION in events)):
         events.append(NOT_LEAVING_EXPLOSION)
