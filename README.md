@@ -118,6 +118,14 @@ When we use our trained model from coin heaven on loot crate we want to have aga
 
 Today's todos:
 
-- [ ] fix wiggling reward and check
-- [ ] implement events from bomberbrains: ESCAPING_BOMB_FULLY, ESCAPING_BOMB_PARTIALLY, RUNNING_INTO_BOMB, RUNNING_INTO_BOMB_PARTIALLY, NOT_LEAVING_BLAST, RUNNING_INTO_EXPLOSION 
-- [ ] finish implementing function from rewards for the previous mentioned events
+- [x] implement events from bomberbrains: ESCAPING_BOMB_FULLY, ESCAPING_BOMB_PARTIALLY, RUNNING_INTO_BOMB, RUNNING_INTO_BOMB_PARTIALLY, NOT_LEAVING_BLAST, RUNNING_INTO_EXPLOSION 
+- [x] finish implementing function from rewards for the previous mentioned events
+
+
+Sat Sep 21 12:29:44 CEST 2024
+- [Xera] fix wiggling reward and check
+- [Xera] find some good rewards for the above mentioned events
+- [Mara] changing callbacks that it loads the best model with a 0.1 epsilon to avoid getting stuck in wiggling
+- [Mara] reclone the project and copy meister eckhart into it and test it (to see that our changes to the main do not affect the rest of the project)
+- [Andrei] take a look on eckhart imitaiton if everything is fucntional because we need to submit that as a second agent
+- [Mara] submit project
