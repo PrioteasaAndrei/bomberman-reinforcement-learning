@@ -207,7 +207,7 @@ def blast_events(self, old_game_state, new_game_state, events: List[str], logger
         events.append(INTO_BLAST)
     
 
-    if(new_coords in new_blasts) and ((e.WAITED or e.INVALID_ACTION in events)):
+    if(new_coords in new_blasts) and ((e.WAITED or e.INVALID_ACTION) in events):
         events.append(NOT_LEAVING_EXPLOSION)
 
     if(old_coords not in old_blasts) and ((e.KILLED_SELF or e.GOT_KILLED) in events):
