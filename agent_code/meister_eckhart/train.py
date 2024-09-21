@@ -67,6 +67,8 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     """
     # self.logger.debug(f'Encountered game event(s) {", ".join(map(repr, events))} in step {new_game_state["step"]}')
 
+    self.position_history.append(new_game_state['self'][-1])
+    
     # check for custom events
     moved_towards_coin_reward(self, old_game_state, new_game_state, events)
     avoid_long_wait(self, events)
