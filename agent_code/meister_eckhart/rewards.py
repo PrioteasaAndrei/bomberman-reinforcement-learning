@@ -55,7 +55,7 @@ ENEMY_IN_RANGE_OF_BOMB_REWARD = 50
 INTO_EXPLOSION_REWARD = 0       #went back into blast tiles as the bombs explodes, killing the agent
 NOT_LEAVING_EXPLOSION_REWARD = 0    #waiting or invalid action in blast tiles
 
-#Coded very inefficiently, commented out
+
 MOVED_CLOSER_TO_BOMB_REWARD = 0     #approaching bomb
 MOVED_FURTHER_FROM_BOMB_REWARD = 0  #going away from bomb
 
@@ -109,7 +109,7 @@ def avoid_wiggling(self, events: List[str]):
     frequent_positions = 0
 
     for pos, count  in position_freq.items():
-        if count > REPEATED_POSITION_LIMIT:
+        if count >= REPEATED_POSITION_LIMIT:
             frequent_positions += 1
     
     if frequent_positions > FREQUENT_POSITION_LIMIT:
