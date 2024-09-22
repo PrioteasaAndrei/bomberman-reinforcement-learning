@@ -47,7 +47,7 @@ def setup(self):
         self.epsilon_update_strategy = checkpoint['epsilon_strategy']
 
         if REINITIALIZE_EPSILON:
-            self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=20 * DECAY_STEPS)
+            self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=START_EPSILON, min_epsilon=0.1, decay_steps=DECAY_STEPS)
             # reinitialize optimizer as well
             self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE / 1.4)
 
