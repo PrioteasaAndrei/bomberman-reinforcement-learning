@@ -63,7 +63,7 @@ def setup(self):
     else:
         self.logger.info("Loading model from saved state for inference. Loaded model is {}".format(MODEL_SAVE_PATH))
         self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
-        checkpoint = torch.load(MODEL_SAVE_PATH) # just for inference use the latest trained model
+        checkpoint = torch.load(MODEL_SAVE_PATH, map_location=TRAIN_DEVICE) # just for inference use the latest trained model
         self.policy_net.load_state_dict(checkpoint['model_state_dict'])
 
         # with open(MODEL_SAVE_PATH, "rb") as file:
