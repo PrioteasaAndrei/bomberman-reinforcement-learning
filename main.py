@@ -152,7 +152,7 @@ def main(argv = None):
                          help="Make a video from the game")
 
     args = parser.parse_args(argv)
-    args.no_gui = False
+    args.no_gui = True
     if args.command_name == "replay":
         args.no_gui = False
         args.n_rounds = 1
