@@ -3,7 +3,6 @@ from collections import namedtuple, deque
 import pickle
 from typing import List
 import os
-# import events as e
 from .callbacks import state_to_features
 from .model import ReplayMemory
 from .model import train_step
@@ -14,32 +13,7 @@ from tqdm import tqdm
 from .callbacks import MODEL_SAVE_PATH
 import torch
 from .rewards import *
-# This is only an example!
-Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
-
-# Hyper parameters -- DO modify
-RECORD_ENEMY_TRANSITIONS = 1.0 # record enemy transitions with probability ...
-GAMMA = 0.99
-MEMORY_SIZE = 10000
-MEMORY_SIZE_RULE_BASED = 10_000
-BATCH_SIZE = 128
-
-# the number of training steps
-TRAIN_EPOCHS = 10_000
-
-TRAIN_DEVICE = torch.device(
-    "cuda" if torch.cuda.is_available() else
-    "mps" if torch.backends.mps.is_available() else
-    "cpu"
-)
-ROUND_TO_PLOT = 5000 #default 200
-
-TRAIN_ON_RULE_BASED_TRANSITIONS = True
-FINISHED_TRAINING_ON_RULE_BASED_BUFFER = False
-SCENARIO = "coin_heaven"
-SAVED_TRANISION_PATH = 'rule_based_transitions/rule_based_training_memory_' + SCENARIO + '.pt'
-
+from .config import *
 
 def setup_training(self):
     """
@@ -55,44 +29,63 @@ def setup_training(self):
     self.losses = []
     self.scores = []
     self.round_scores = 0
+    self.waited_times = 0
 
+    self.position_history = deque(maxlen=POSITION_HISTORY_SIZE)
 
-    # load saved transitions
-    if os.path.exists(SAVED_TRANISION_PATH):
-        self.rule_based_training_memory = load_transitions(self.logger,SAVED_TRANISION_PATH)
-        self.logger.info("Loaded rule based training memory")
-        FINISHED_TRAINING_ON_RULE_BASED_BUFFER = True
-    else:
-        self.logger.info("Initializing replay memory for trainng based on rule agent.")
-        self.rule_based_training_memory = ReplayMemory(MEMORY_SIZE_RULE_BASED)
+    self.round_custom_scores = []
+    
+    self.epsilon_values = []
 
-    if len(self.rule_based_training_memory) > 0 and TRAIN_ON_RULE_BASED_TRANSITIONS:
-        self.logger.info("Training on rule based transitions")
+    self.crates_destroyed_per_round = 0
+    self.crates_destroyed_list = []
 
-        for epoch in tqdm(range(TRAIN_EPOCHS)):
+    self.round_reward = 0
+    self.running_steps = 0
+    self.running_reward = []
+    
+    self.survived_steps_per_round = []
+
+    # TODO: problem with train from checkpoint
+    if os.path.isfile(RULE_BASE_TRANSITIONS_PATH):
+       self.rule_based_training_memory = load_transitions(self.logger, RULE_BASE_TRANSITIONS_PATH)
+
+       # train on them
+
+       for epoch in tqdm(range(RULE_BASED_TRAINING_EPOCHS)):
             loss = train_step(self, BATCH_SIZE, GAMMA, TRAIN_DEVICE,self.rule_based_training_memory)
             self.losses.append(loss)
 
             # update target net
 
-            if epoch % 10 == 0:
+            if epoch % 4 == 0:
                 # set the target net weights to the ones of the policy net
                 self.target_net.load_state_dict(self.policy_net.state_dict())
+
+            if epoch % SAVE_MODEL_EVERY == 0:
+                checkpoint = {
+                    'model_state_dict': self.policy_net.state_dict(),  # Save model weights
+                    'optimizer_state_dict': self.optimizer.state_dict(),  # Save optimizer state
+                }
+            
+                torch.save(checkpoint, MODEL_SAVE_PATH)
+
+                plt.clf()
+
+                plt.plot(self.losses)
+                plt.xlabel("Training steps")
+                plt.ylabel("Loss")
+                plt.title("Training losses")
+                plt.savefig("logs/policy_net_losses" +".png")
+
             
         
-        plt.plot(self.losses[::10])
-        plt.xlabel("Training steps")
-        plt.ylabel("Loss")
-        plt.title("Training losses")
-        plt.savefig("logs/policy_net_losses_on_" + SCENARIO +"rule_based.png")
-        plt.clf()
+        # stop the program here
 
-        self.logger.info("Finished training on rule based transitions")
-        FINISHED_TRAINING_ON_RULE_BASED_BUFFER = True
+    else:
+       # collect
+       self.rule_based_training_memory = ReplayMemory(MEMORY_SIZE_RULE_BASED)
 
-        ## save model after training on rule based transitions
-        with open(MODEL_SAVE_PATH, "wb") as file:
-            pickle.dump(self.policy_net, file)
         
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
@@ -112,35 +105,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     :param new_game_state: The state the agent is in now.
     :param events: The events that occurred when going from  `old_game_state` to `new_game_state`
     """
-    # self.logger.debug(f'Encountered game event(s) {", ".join(map(repr, events))} in step {new_game_state["step"]}')
-
-    self.logger.info("Number of states in the replay memory: {}".format(len(self.rule_based_training_memory)))
-    # check for custom events
-    moved_towards_coin_reward(self, old_game_state, new_game_state, events)
-    avoided_self_bomb_reward(self, old_game_state, events)
-    into_out_of_blast(self, old_game_state, new_game_state, events)
-
-    # state_to_features is defined in callbacks.py
-    self.memory.append(Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events)))
-
-    self.round_scores += get_score(events)
-
-
-    if not FINISHED_TRAINING_ON_RULE_BASED_BUFFER:
-        # check for custom events
-        moved_towards_coin_reward(self, old_game_state, new_game_state, events)
-        avoided_self_bomb_reward(self, old_game_state, new_game_state, events)
-        into_out_of_blast(self, old_game_state, new_game_state, events)
-
-        self.memory.append(Transition(state_to_features(old_game_state), self_action, state_to_features(new_game_state), reward_from_events(self, events)))
-
-        self.round_scores += get_score(events)
-
-        if self.memory.can_provide_sample(BATCH_SIZE):
-            # Train your agent
-            self.logger.info("Initiating one step of training...")
-            loss = train_step(self, BATCH_SIZE, GAMMA, TRAIN_DEVICE,self.memory)
-            self.losses.append(loss)
+    pass 
 
 def end_of_round(self, last_game_state: dict, last_action: str, events: List[str]):
     """
@@ -155,47 +120,27 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
     :param self: The same object that is passed to all of your callbacks.
     """
-
-    if not FINISHED_TRAINING_ON_RULE_BASED_BUFFER:
-
-        # self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
-        self.memory.append(Transition(state_to_features(last_game_state), last_action, None, reward_from_events(self, events)))
-        self.scores.append(self.round_scores)
-        self.round_scores = 0
-
-        # update target net
-        if last_game_state['round'] % 4 == 0:
-            # set the target net weights to the ones of the policy net
-            self.target_net.load_state_dict(self.policy_net.state_dict())
-
-        self.logger.info(f"Rule based agent buffer has {len(self.rule_based_training_memory)} transitions")
-
-        if last_game_state['round'] == ROUND_TO_PLOT:
-            # Plot the losses
-            plt.plot(self.losses[::10])
-            plt.xlabel("Training steps")
-            plt.ylabel("Loss")
-            plt.title("Training losses")
-            plt.savefig("logs/policy_net_losses" +".png")
-            plt.clf()
-
-            ## number of scores higher that 4
-            big_scores = len([score for score in self.scores if score > 4])
-            # Plot the scores
-            plt.plot(self.scores)
-            plt.xlabel("Training steps")
-            plt.ylabel("Score")
-            plt.title("Scores. We have " + str(big_scores) + " scores higher than 4")
-            plt.savefig("logs/scores" +".png")
-
-
-        # # Store the model
-        # with open("my-saved-model.pt", "wb") as file:
-        #     pickle.dump(self.policy_net, file)
-
-    if len(self.rule_based_training_memory) >= MEMORY_SIZE_RULE_BASED - 1 and not os.path.exists(SAVED_TRANISION_PATH):
-        save_transitions(self.rule_based_training_memory, SAVED_TRANISION_PATH)
+    if len(self.rule_based_training_memory) >= MEMORY_SIZE_RULE_BASED - 1 and not os.path.exists(RULE_BASE_TRANSITIONS_PATH):
+        save_transitions(self.rule_based_training_memory, RULE_BASE_TRANSITIONS_PATH)
         self.logger.info("Saved rule based training memory")
+
+
+  
+'''
+# NOTE: run with continue without training to get all the transitions
+'''
+def enemy_game_events_occurred(self, enemy_name: str, old_enemy_game_state: dict, enemy_action: str, new_enemy_game_state: dict, enemy_events: List[str]):
+   '''
+   Function signature taken from the discord channel of the course.
+   Use a random sampling to spread out the transition types so we can get some from further in the game
+
+   '''
+       
+   if enemy_name == 'rule_based_agent' and not os.path.exists(RULE_BASE_TRANSITIONS_PATH): # NOTE: this has to be changed in coin heavn to rule_based_agent
+        self.logger.debug(f'xxxxx Enemy {enemy_name} has events: {enemy_events} and has taken action {enemy_action}')
+        if enemy_action is not None and random.random() < RECORD_ENEMY_TRANSITIONS: # when the enemy is dead
+            self.rule_based_training_memory.append(Transition(state_to_features(old_enemy_game_state), enemy_action, state_to_features(new_enemy_game_state), reward_from_events(self, enemy_events)))
+
 
 def reward_from_events(self, events: List[str]) -> int:
     """
@@ -214,6 +159,7 @@ def reward_from_events(self, events: List[str]) -> int:
     return reward_sum
 
 
+
 def get_score(events: List[str]) -> int:
     '''
     tracks the true score we use for evaluating our agents
@@ -230,19 +176,6 @@ def get_score(events: List[str]) -> int:
             score += true_game_rewards[event]
     return score
 
-'''
-# NOTE: run with continue without training to get all the transitions
-'''
-def enemy_game_events_occurred(self, enemy_name: str, old_enemy_game_state: dict, enemy_action: str, new_enemy_game_state: dict, enemy_events: List[str]):
-   '''
-   Function signature taken from the discord channel of the course.
-
-   '''
-   
-   if enemy_name == 'rule_based_agent': # NOTE: this has to be changed in coin heavn to rule_based_agent
-        self.logger.debug(f'xxxxx Enemy {enemy_name} has events: {enemy_events} and has taken action {enemy_action}')
-        if enemy_action is not None: # when the enemy is dead
-            self.rule_based_training_memory.append(Transition(state_to_features(old_enemy_game_state), enemy_action, state_to_features(new_enemy_game_state), reward_from_events(self, enemy_events)))
 
 
 def save_transitions(transitions: List[Transition],path: str):
