@@ -6,8 +6,9 @@ from items import Bomb
 import settings
 from .config import WALKING_DIRECTIONS
 
+#Avoid waiting too long and wiggling parameters
 LONG_WAIT_LIMIT = 3
-POSITION_HISTORY_SIZE = 6
+POSITION_HISTORY_SIZE = 7
 REPEATED_POSITION_LIMIT = 3
 FREQUENT_POSITION_LIMIT = 1
 
@@ -29,35 +30,39 @@ NOT_LEAVING_EXPLOSION = 'NOT_LEAVING_EXPLOSION'
 MOVED_CLOSER_TO_BOMB = 'MOVED_CLOSER_TO_BOMB'
 MOVED_FURTHER_FROM_BOMB = 'MOVED_FURTHER_FROM_BOMB'
 
-# Rewards
-COIN_COLLECTION_REWARD = 10 
-KILLED_OPPONENT_REWARD = 200
+# Movement rewards
 INVALID_ACTION_REWARD = -100
-KILLED_SELF_REWARD = -100
-GOT_KILLED_REWARD = -50
-CRATE_DESTROYED_REWARD = 8
-SURVIVED_ROUND_REWARD = 0.2
 MOVE_REWARD = -0.1
-MOVED_CLOSER_TO_COIN_REWARD = 0.8 #default 0.4
-MOVED_FURTHER_FROM_COIN_REWARD = -1 #default -0.6
-AVOIDED_SELF_BOMB_REWARD = 0
-OUT_OF_BLAST_REWARD = 50    #not in blast tiles anymore
-INTO_BLAST_REWARD = -60     #went back into blast tiles
-BOMB_REWARD = -0.1
 LONG_WAIT_REWARD = -100
 WIGGLING_REWARD = -150
+
+#Crate rewards
+CRATE_DESTROYED_REWARD = 8
+
+#Coin rewards
+COIN_COLLECTION_REWARD = 10 
+MOVED_CLOSER_TO_COIN_REWARD = 0.8 #default 0.4
+MOVED_FURTHER_FROM_COIN_REWARD = -1 #default -0.6
+
+
+#Bomb rewards
+KILLED_OPPONENT_REWARD = 200
+KILLED_SELF_REWARD = -100
+GOT_KILLED_REWARD = -50
+AVOIDED_SELF_BOMB_REWARD = 0
+BOMB_REWARD = -0.1
+OUT_OF_BLAST_REWARD = 50    #not in blast tiles anymore
+INTO_BLAST_REWARD = -60     #went back into blast tiles
+INTO_EXPLOSION_REWARD = 0       #went back into blast tiles as the bombs explodes, killing the agent
+NOT_LEAVING_EXPLOSION_REWARD = 0    #waiting or invalid action in blast tiles
+MOVED_CLOSER_TO_BOMB_REWARD = 0     #approaching bomb
+MOVED_FURTHER_FROM_BOMB_REWARD = 0  #going away from bomb
 PLACED_BOMB_IN_CORNER_REWARD = -100
 WILL_EXPLODE_MORE_THAN_3_CRATES_REWARD = 30
 CRATES_IN_RANGE_OF_BOMB_REWARD = 12
 ENEMY_IN_RANGE_OF_BOMB_REWARD = 50
+SURVIVED_ROUND_REWARD = 0.2
 
-#Modify
-INTO_EXPLOSION_REWARD = 0       #went back into blast tiles as the bombs explodes, killing the agent
-NOT_LEAVING_EXPLOSION_REWARD = 0    #waiting or invalid action in blast tiles
-
-
-MOVED_CLOSER_TO_BOMB_REWARD = 0     #approaching bomb
-MOVED_FURTHER_FROM_BOMB_REWARD = 0  #going away from bomb
 
 GAME_REWARDS = {
         e.COIN_COLLECTED: COIN_COLLECTION_REWARD,
@@ -71,7 +76,7 @@ GAME_REWARDS = {
         e.MOVED_LEFT: MOVE_REWARD,
         e.MOVED_RIGHT: MOVE_REWARD,
         e.MOVED_UP: MOVE_REWARD,
-        # e.WAITED: MOVE_REWARD, # penalize just waiting
+        e.WAITED: MOVE_REWARD, 
         e.BOMB_DROPPED: BOMB_REWARD,
         MOVED_CLOSER_TO_COIN: MOVED_CLOSER_TO_COIN_REWARD,
         MOVED_FURTHER_FROM_COIN: MOVED_FURTHER_FROM_COIN_REWARD,
@@ -115,11 +120,6 @@ def avoid_wiggling(self, events: List[str]):
     if frequent_positions > FREQUENT_POSITION_LIMIT:
         events.append(WIGGLING)
 
-def crate_destroyer_reward(self, game_state, events: List[str]) -> int:
-    """
-    Rewards the agent liniarly for destroying crates. Encourages strategic bomb placement.
-    """
-    return Counter(events)['CRATE_DESTROYED'] * CRATE_DESTROYED_REWARD
 
 def get_blasts(bombs, field):
     """
@@ -144,7 +144,7 @@ def avoided_self_bomb_reward(self, game_state, events: List[str]):
 
 def bfs_to_bombs(current_position: Tuple[int, int], objective_coordinates: List[Tuple[int,int]], game_map) -> Tuple[int, int]:
     """
-    Rewards the agent for moving towards the objective.
+    Rewards the agent for moving towards or away the objective.
     returns: position of the closest objective as tuple
     """
     if (current_position in objective_coordinates): #We are standing on a bomb
@@ -180,8 +180,6 @@ def blast_events(self, old_game_state, new_game_state, events: List[str], logger
     old_blasts = get_blasts(old_game_state['bombs'], old_game_state['field'])
     new_blasts = get_blasts(new_game_state['bombs'], new_game_state['field'])
     
-    
-    #TODO: Maybee make code less inefficient
     old_bombs = old_game_state['bombs']
     new_bombs = new_game_state['bombs']
     if (old_bombs != None and new_bombs != None):
@@ -199,13 +197,12 @@ def blast_events(self, old_game_state, new_game_state, events: List[str], logger
         if(old_coords in old_blasts) and (old_distance > new_distance):
             events.append(MOVED_FURTHER_FROM_BOMB)
         
-    
 
     if(old_coords in old_blasts) and (new_coords not in new_blasts):
         events.append(OUT_OF_BLAST)
+
     if(old_coords not in old_blasts) and (new_coords in new_blasts):
         events.append(INTO_BLAST)
-    
 
     if(new_coords in new_blasts) and ((e.WAITED or e.INVALID_ACTION) in events):
         events.append(NOT_LEAVING_EXPLOSION)
@@ -213,9 +210,6 @@ def blast_events(self, old_game_state, new_game_state, events: List[str], logger
     if(old_coords not in old_blasts) and ((e.KILLED_SELF or e.GOT_KILLED) in events):
         events.append(INTO_EXPLOSION)
     
-
-  
-
 
 def bfs_to_objective(current_position: Tuple[int, int], objective_coordinates: List[Tuple[int,int]], game_map, explosion_map) -> Tuple[int, int]:
     """
@@ -285,7 +279,6 @@ def get_explosion_map(bombs: List[Tuple[Tuple[int, int], int]], field: np.array,
     existing_explosions = np.copy(explosion_map)
 
     # normalize the bomb times so that the smaller the more dangerous
-
     existing_explosions = existing_explosions * (settings.BOMB_TIMER * -1) + 1
     
     for bomb in bombs:
@@ -296,7 +289,7 @@ def get_explosion_map(bombs: List[Tuple[Tuple[int, int], int]], field: np.array,
         bomb_timer = bomb_timer - settings.BOMB_TIMER + 1
 
         # update the obstacles in the field
-        field[bomb_position] = -77 # value doesnt matter ; assume you cannot walk over a bomb
+        field[bomb_position] = -10 # assume you cannot walk over a bomb
 
         # update the explosion map
         for direction in WALKING_DIRECTIONS:
@@ -313,13 +306,12 @@ def get_explosion_map(bombs: List[Tuple[Tuple[int, int], int]], field: np.array,
                 # if a more recent bomb with more steps to live is there, keep that instead
                 existing_explosions[explosion_location] = min(existing_explosions[explosion_location], bomb_timer)
 
-
     return existing_explosions
                     
 
 def simulate_explosion_map(current_explosion_map: np.array, bomb_position: Tuple[int, int], field: np.array) -> np.array:
     '''
-    We need this in the situations where we want to see if placing a bomb will kill us or not
+    Check if placing a bomb will kill our agent or not
     '''
 
     cur_map = np.copy(current_explosion_map)
@@ -415,11 +407,10 @@ def get_bomb_reward(game_state: dict , events: List[str]) -> int:
     other_agents_positions = [agent[3] for agent in game_state['others']]
     explosion_map = get_explosion_map(game_state['bombs'], game_state['field'], game_state['explosion_map'])
     field = game_state['field']
-    ### Dropping bomb feature ### 
 
     potential_crate = False
     oponent_in_reach = False
-    bomb_feature = 0 # just an int
+    bomb_feature = 0 
 
     # free from bombs / explosion
     if explosion_map[agent_position] == 1: 
@@ -435,51 +426,8 @@ def get_bomb_reward(game_state: dict , events: List[str]) -> int:
     if check_death(simulate_explosion_map(explosion_map, agent_position, field), agent_position, None, field):
         events.append(e.KILLED_SELF)
 
-
     if game_state['self'][2]:
-
         bomb_feature = get_number_exploded_crates(agent_position, explosion_map, field)
-
         if bomb_feature >= 3:
             events.append(WILL_EXPLODE_MORE_THAN_3_CRATES)
 
-"""
-# TODO: Check blast_events for correctness
-def escape_bomb(self, old_game_state, new_game_state, events):
-    old_bomb_blasts_coord = [coords for coords, _ in get_bomb_blasts(old_game_state['bombs'], old_game_state['field'])]
-    new_bomb_blasts_coord = [coords for coords, _ in get_bomb_blasts(new_game_state['bombs'], new_game_state['field'])]
-
-    old_bombs = [coords for coords, _ in old_game_state['bombs']]
-    new_bombs = [coords for coords, _ in new_game_state['bombs']]
-
-    player_coord_new = new_game_state['self'][-1]
-    player_coord_old = old_game_state['self'][-1]
-
-    if(
-            player_coord_old in old_bomb_blasts_coord and
-            player_coord_new not in new_bomb_blasts_coord
-    ):
-        events.append(ESCAPING_BOMB_FULLY)
-    elif(
-            player_coord_old not in old_bomb_blasts_coord and
-            player_coord_new in new_bomb_blasts_coord and
-            e.BOMB_DROPPED not in events
-    ):
-        events.append(RUNNING_INTO_BOMB)
-    elif(player_coord_old in old_bomb_blasts_coord and player_coord_new in new_bomb_blasts_coord):
-        closest_bomb_old, _ = get_closest_item_bfs(player_coord_old[0],
-                                                   player_coord_old[1],
-                                                   old_bombs, old_game_state['field'])
-        closest_bomb_new, _ = get_closest_item_bfs(player_coord_new[0],
-                                                player_coord_new[1],
-                                                new_bombs, new_game_state['field'])
-        if not closest_bomb_old == None and not closest_bomb_new == None:
-            if get_manhatten_distance(closest_bomb_new, player_coord_new) > \
-                    get_manhatten_distance(closest_bomb_old, player_coord_old):
-                events.append(ESCAPING_BOMB_PARTLY)
-            elif get_manhatten_distance(closest_bomb_new, player_coord_new) < \
-                    get_manhatten_distance(closest_bomb_old, player_coord_old) and \
-                    not e.BOMB_DROPPED in events:
-                events.append(RUNNING_INTO_BOMB_PARTLY)
-
-"""

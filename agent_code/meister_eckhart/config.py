@@ -21,26 +21,28 @@ TRAIN_DEVICE = torch.device(
     "mps" if torch.backends.mps.is_available() else
     "cpu"
 )
-SCENARIO = "loot-crate" # NOTE: make sure this is the exact same name as the scenario in the main.py command
+
+
+#Saving and loading
+MODEL_TYPE = "JointDQN"
+SCENARIO = "loot-crate" 
 MODEL_SAVE_PATH = "saved-model-" + SCENARIO +  ".pth.tar"
-MODEL_LOAD_PATH = 'saved_models/coin-heaven-400ep-1000ds.pth.tar'
-# MODEL_LOAD_PATH = 'saved-model-loot-crate.pth.tar'
+MODEL_LOAD_PATH = 'saved_models/saved-model-coin-heaven1.pth.tar'
+SAVE_MODEL_EVERY = 100
 
-# set to False if you don't want to train further the saved model
-TRAIN_FROM_CHECKPOINT = True
-# if you want to reinitialize EpsilonGreedyStrategy
-REINITIALIZE_EPSILON = True
 
+#Training
 RECORD_ENEMY_TRANSITIONS = 1.0 # record enemy transitions with probability ...
 MEMORY_SIZE = 10000
 BATCH_SIZE = 64
-
-ROUND_TO_PLOT = 2 
-SAVE_MODEL_EVERY = 100
-
 CROP_SIZE = 7
+TRAIN_FROM_CHECKPOINT = True # set to False if you don't want to train further the saved model
+REINITIALIZE_EPSILON = True # if you want to reinitialize EpsilonGreedyStrategy
 
-MODEL_TYPE = "JointDQN"
+
+#Plotting
+ROUND_TO_PLOT = 2 
+
 
 # Hyper parameters -- load them from the config file
 # print current path

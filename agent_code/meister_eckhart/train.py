@@ -23,30 +23,28 @@ def setup_training(self):
 
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
-    # Example: Setup an array that will note transition tuples
-    # (s, a, r, s')
+
+    #Setting up Replay Memory for transitions
     self.memory = ReplayMemory(MEMORY_SIZE)
+
+    #Plotting
     self.losses = []
     self.scores = []
     self.round_scores = 0
-    self.waited_times = 0
-
-    self.position_history = deque(maxlen=POSITION_HISTORY_SIZE)
-
     self.round_custom_scores = []
-    
-    self.epsilon_values = []
-
-    self.crates_destroyed_per_round = 0
-    self.crates_destroyed_list = []
-
     self.round_reward = 0
     self.running_steps = 0
     self.running_reward = []
-    
-
+    self.crates_destroyed_per_round = 0
+    self.crates_destroyed_list = []
+    self.epsilon_values = []
     self.survived_steps_per_round = []
-        
+
+    #Avoiding long wait and wiggling
+    self.waited_times = 0
+    self.position_history = deque(maxlen=POSITION_HISTORY_SIZE)
+
+      
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
     """
@@ -65,11 +63,9 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     :param new_game_state: The state the agent is in now.
     :param events: The events that occurred when going from  `old_game_state` to `new_game_state`
     """
-    # self.logger.debug(f'Encountered game event(s) {", ".join(map(repr, events))} in step {new_game_state["step"]}')
-
-    self.position_history.append(new_game_state['self'][-1])
     
     # check for custom events
+    self.position_history.append(new_game_state['self'][-1])
     moved_towards_coin_reward(self, old_game_state, new_game_state, events)
     avoid_long_wait(self, events)
     avoided_self_bomb_reward(self, old_game_state, events)
@@ -77,8 +73,8 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     avoid_wiggling(self, events)
     placed_bomb_in_corner(self,old_game_state=old_game_state, events=events)
 
+    # Plotting
     self.running_steps += 1
-
     self.memory.append(Transition(state_to_features(old_game_state, logger = self.logger), self_action, state_to_features(new_game_state, logger = self.logger), reward_from_events(self, events)))
     self.round_custom_scores.append(reward_from_events(self, events))
     self.round_scores += get_score(events)
@@ -87,7 +83,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     self.round_reward += reward_from_events(self, events)
 
     if self.memory.can_provide_sample(BATCH_SIZE):
-        # Train your agent
+        # Train our agent
         self.logger.info("Initiating one step of training...")
         loss = train_step(self, BATCH_SIZE, GAMMA, TRAIN_DEVICE,self.memory)
         self.losses.append(loss)
@@ -106,7 +102,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     :param self: The same object that is passed to all of your callbacks.
     """
 
-    # self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
     self.memory.append(Transition(state_to_features(last_game_state, logger = self.logger), last_action, None, reward_from_events(self, events)))
     self.scores.append(self.round_scores)
     self.crates_destroyed_list.append(self.crates_destroyed_per_round)
@@ -114,10 +109,12 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.logger.info(f"Round {last_game_state['round']} ended with score {self.round_reward / self.running_steps} and score {self.round_scores}")
     self.survived_steps_per_round.append(self.running_steps)
     
+    # Initializing for plotting
     self.round_scores = 0
     self.crates_destroyed_per_round = 0
     self.round_reward = 0
     self.running_steps = 0
+    self.crate_destroyed = 0
 
     # update target net
     if last_game_state['round'] % UPDATE_TARGET_EVERY == 0:
@@ -144,9 +141,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         plt.ylabel("Steps alive")
         plt.title("Steps alive")
         plt.savefig("logs/survived_steps" +".png")
-
         plt.clf()
-
 
         # plot the number of destroyed crates
         plt.scatter(list(range(len(self.crates_destroyed_list))),self.crates_destroyed_list)
@@ -154,11 +149,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         plt.ylabel("Crates destroyed")
         plt.title("Crates destroyed")
         plt.savefig("logs/crates_destroyed" +".png")
-
-        self.crate_destroyed = 0
-
         plt.clf()
-
 
         # plot the epsilon values
         plt.plot(self.epsilon_values)
@@ -166,9 +157,9 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         plt.ylabel("Epsilon")
         plt.title("Epsilon values")
         plt.savefig("logs/epsilon_values" +".png")
-
         plt.clf()
 
+        # plot the losses
         plt.plot(self.losses[::10])
         plt.xlabel("Training steps")
         plt.ylabel("Loss")
@@ -176,7 +167,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         plt.savefig("logs/policy_net_losses" +".png")
         plt.clf()
 
-        ## number of scores higher that 4
+        ## number of scores higher that 40
         big_scores = len([score for score in self.scores if score > 40])
         # Plot the scores
         plt.scatter(list(range(len(self.scores))),self.scores)
@@ -202,18 +193,14 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         with open("logs/running_reward.txt", "w") as file:
             file.write(str(np.mean(self.running_reward)))
 
-  
-'''
-# NOTE: run with continue without training to get all the transitions
-'''
-def enemy_game_events_occurred(self, enemy_name: str, old_enemy_game_state: dict, enemy_action: str, new_enemy_game_state: dict, enemy_events: List[str]):
-   '''
-   Function signature taken from the discord channel of the course.
 
-   '''
+def enemy_game_events_occurred(self, enemy_name: str, old_enemy_game_state: dict, enemy_action: str, new_enemy_game_state: dict, enemy_events: List[str]):
+   """
+    Function for saving transitions from the rule based agent, see: meister_eckhart_imitation
+   """ 
    pass
    
-#    if enemy_name == 'rule_based_agent': # NOTE: this has to be changed in coin heavn to rule_based_agent
+#    if enemy_name == 'rule_based_agent': 
 #         self.logger.debug(f'xxxxx Enemy {enemy_name} has events: {enemy_events} and has taken action {enemy_action}')
 #         if enemy_action is not None: # when the enemy is dead
 #             self.rule_based_training_memory.append(Transition(state_to_features(old_enemy_game_state), enemy_action, state_to_features(new_enemy_game_state), reward_from_events(self, enemy_events)))
@@ -232,14 +219,13 @@ def reward_from_events(self, events: List[str]) -> int:
     for event in events:
         if event in game_rewards:
             reward_sum += game_rewards[event]
-    self.logger.info(f"Awarded {reward_sum} for events {', '.join(events)}")
+    #self.logger.info(f"Awarded {reward_sum} for events {', '.join(events)}")
     return reward_sum
-
 
 
 def get_score(events: List[str]) -> int:
     '''
-    tracks the true score we use for evaluating our agents
+    Tracks the true score we use for evaluating our agents
 
     :param events: events that occured in game step
     '''
@@ -252,7 +238,6 @@ def get_score(events: List[str]) -> int:
         if event in true_game_rewards:
             score += true_game_rewards[event]
     return score
-
 
 
 def save_transitions(transitions: List[Transition],path: str):
