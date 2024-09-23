@@ -41,27 +41,27 @@ CRATE_DESTROYED_REWARD = 8
 
 #Coin rewards
 COIN_COLLECTION_REWARD = 10 
-MOVED_CLOSER_TO_COIN_REWARD = 0.8 #default 0.4
-MOVED_FURTHER_FROM_COIN_REWARD = -1 #default -0.6
+MOVED_CLOSER_TO_COIN_REWARD = 0.8 
+MOVED_FURTHER_FROM_COIN_REWARD = -1 
 
 
 #Bomb rewards
 KILLED_OPPONENT_REWARD = 200
 KILLED_SELF_REWARD = -100
 GOT_KILLED_REWARD = -50
-AVOIDED_SELF_BOMB_REWARD = 0
+AVOIDED_SELF_BOMB_REWARD = 20
 BOMB_REWARD = -0.1
 OUT_OF_BLAST_REWARD = 50    #not in blast tiles anymore
 INTO_BLAST_REWARD = -60     #went back into blast tiles
-INTO_EXPLOSION_REWARD = 0       #went back into blast tiles as the bombs explodes, killing the agent
-NOT_LEAVING_EXPLOSION_REWARD = 0    #waiting or invalid action in blast tiles
-MOVED_CLOSER_TO_BOMB_REWARD = 0     #approaching bomb
-MOVED_FURTHER_FROM_BOMB_REWARD = 0  #going away from bomb
+INTO_EXPLOSION_REWARD = -40       #went back into blast tiles as the bombs explodes, killing the agent
+NOT_LEAVING_EXPLOSION_REWARD = -50    #waiting or invalid action in blast tiles
+MOVED_CLOSER_TO_BOMB_REWARD = -5     #approaching bomb
+MOVED_FURTHER_FROM_BOMB_REWARD = 4 #going away from bomb
 PLACED_BOMB_IN_CORNER_REWARD = -100
 WILL_EXPLODE_MORE_THAN_3_CRATES_REWARD = 30
 CRATES_IN_RANGE_OF_BOMB_REWARD = 12
-ENEMY_IN_RANGE_OF_BOMB_REWARD = 50
-SURVIVED_ROUND_REWARD = 0.2
+ENEMY_IN_RANGE_OF_BOMB_REWARD = 30
+SURVIVED_ROUND_REWARD = 50
 
 
 GAME_REWARDS = {
