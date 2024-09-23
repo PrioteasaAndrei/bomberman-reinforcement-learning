@@ -4,11 +4,11 @@ import random
 import numpy as np
 from .model import *
 import torch
+import torch.optim as optim
 import logging
 import settings
 from .exploration_strategies import *
-from .rewards import *
-
+from .config import *
 
 def setup(self):
     """
@@ -24,20 +24,48 @@ def setup(self):
 
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
+    global TRAIN_FROM_CHECKPOINT
+    if not self.train:
+        TRAIN_FROM_CHECKPOINT = False
+    
+    if self.train and os.path.isfile(MODEL_LOAD_PATH) and TRAIN_FROM_CHECKPOINT:
+        self.logger.info("Loading model from saved state for further training.")
+        self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
+        self.target_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
+        # load the checkpoint
+        checkpoint = torch.load(MODEL_LOAD_PATH)
+        # restore model state, optimizer state, loss and epoch (if needed)
+        self.policy_net.load_state_dict(checkpoint['model_state_dict'])
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        # if necessary for plotting
+        self.n_round = checkpoint['n_round']
+        self.loss = checkpoint['loss']
+        # set update strategy
+        # could also be saved at checkpoint
+        self.epsilon_update_strategy = checkpoint['epsilon_strategy']
 
-    if self.train or not os.path.isfile(MODEL_SAVE_PATH):
+        if REINITIALIZE_EPSILON:
+            self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=START_EPSILON, min_epsilon=0.1, decay_steps=DECAY_STEPS)
+            # reinitialize optimizer as well
+            self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE / 1.4)
+
+    elif self.train or not os.path.isfile(MODEL_LOAD_PATH):
         self.logger.info("Setting up model from scratch.")
         self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
         self.target_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
 
         self.logger.info(f"Number of parameters in the model: {self.policy_net.number_of_params()}")
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
-        self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=1000)
-
+        self.epsilon_update_strategy = LinearDecayStrategy(start_epsilon=1.0, min_epsilon=0.1, decay_steps=DECAY_STEPS)
     else:
-        self.logger.info("Loading model from saved state.")
-        with open(MODEL_SAVE_PATH, "rb") as file:
-            self.policy_net = pickle.load(file)
+        self.logger.info("Loading model from saved state for inference. Loaded model is {}".format(MODEL_LOAD_PATH))
+        self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
+        checkpoint = torch.load(MODEL_LOAD_PATH, map_location=TRAIN_DEVICE) # just for inference use the latest trained model
+        self.policy_net.load_state_dict(checkpoint['model_state_dict'])
+
+
 
 def act(self, game_state: dict) -> str:
     """
@@ -49,36 +77,32 @@ def act(self, game_state: dict) -> str:
     :return: The action to take as a string.
     """
 
-    state_to_features_coin_heaven(game_state, self.logger)
-
     raw_features = state_to_features(game_state,self.logger)
-    raw_features = torch.tensor(raw_features).unsqueeze(0)  # Shape becomes (1, 8, 17, 17)
+    raw_features = torch.tensor(raw_features).unsqueeze(0)  # Shape becomes (1, 8, 7, 7)
     self.logger.debug(f"Raw features shape: {raw_features.shape}")
     outputs = self.policy_net(raw_features.float().to(TRAIN_DEVICE))
     outputs_list = outputs.detach().cpu().numpy().flatten().tolist()
     # apply softmax to the outputs
-    outputs_list = np.exp(outputs_list) / np.sum(np.exp(outputs_list)) # HACK: this shouldnt be the case
+    outputs_list = np.exp(outputs_list) / np.sum(np.exp(outputs_list)) 
  
     self.logger.info(f"Number of parameters in the model: {self.policy_net.number_of_params()}")
     self.logger.info(f"Feature space size: {self.policy_net.dqn_input_size}")
 
+
     if self.train:
         random_prob = self.epsilon_update_strategy.epsilon
-        self.epsilon_update_strategy.update_epsilon(3) # step is irelevant for linear decay
-        # self.logger.info(f"Epsilon: {random_prob}")
+        self.epsilon_update_strategy.update_epsilon(game_state["step"]) 
+        self.logger.info(f"Epsilon: {random_prob}")
         if random.random() < random_prob:
             self.logger.debug("Choosing action purely at random.")
             # 80%: walk in any direction. 10% wait. 10% bomb.
             return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
 
-
-    ## TODO: move inference here, there is no point in doing it if we chose a random action
-    ## TODO: move score measuring here
     self.logger.debug("Querying model for action.")
-    return np.random.choice(ACTIONS, p=outputs_list)
+    self.logger.info(f"Chosen action: {ACTIONS[np.argmax(outputs_list)]}")
+    return ACTIONS[np.argmax(outputs_list)]
 
 
-# TODO: Check this
 def crop_map(map, agent_pos, crop_size, logger=None):
     """
     Crop the map around the agent position. The agent is in the middle of the cropped map. The cropped map is a square.
@@ -93,57 +117,23 @@ def crop_map(map, agent_pos, crop_size, logger=None):
     y_max = min(map.shape[1] - 1, y_min + crop_size - 1)
     y_min = y_max + 1 - crop_size
 
-    #logger.info(f"Agent position: {agent_pos}")
-    #logger.info(f"x min: {x_min}, x max: {x_max}, y min: {y_min}, y max: {y_max}")
-
     return map[x_min:x_max+1, y_min:y_max+1]
 
-
-
-
-def state_to_features_coin_heaven(game_state: dict, logger=None) -> np.array:
-    
-    if game_state is None:
-        return None
-    
-    agent_position = game_state['self'][3]
-    other_agents_positions = [agent[3] for agent in game_state['others']]
-    explosion_map = get_explosion_map(game_state['bombs'], game_state['field'], game_state['explosion_map'])
-    field = game_state['field']
-    ### Dropping bomb feature ### 
-
-    potential_crate = False
-    oponent_in_reach = False
-    bomb_feature = 0 # just an int
-
-    # free from bombs / explosion
-    if explosion_map[agent_position] == 1: 
-        for step in WALKING_DIRECTIONS:
-            possible_position = (agent_position[0] + step[0], agent_position[1] + step[1])
-            if possible_position in other_agents_positions:
-                oponent_in_reach = True
-            if field[possible_position] == 1 and explosion_map[possible_position] == 1:
-                potential_crate = True
-
-    if (not potential_crate and not oponent_in_reach) or (not game_state['self'][2]) or check_death(simulate_explosion_map(explosion_map, agent_position, field), agent_position, None, field):
-        bomb_feature = -1    
-    else:
-
-        bomb_feature = get_number_exploded_crates(agent_position, explosion_map, field)
-
-        if oponent_in_reach:
-            bomb_feature += 5
-
-    logger.info(f"Bomb feature: {bomb_feature}")
-
-
 def state_to_features(game_state: dict, logger=None) -> np.array:
-    '''
-    Features we want to track:
+    """
+    *This is not a required function, but an idea to structure your code.*
 
-    1. how useful it is to drop a bomb
-    2. death when moving towards a 
-    '''
+    Converts the game state to the input of your model, i.e.
+    a feature vector.
+
+    You can find out about the state of the game environment via game_state,
+    which is a dictionary. Consult 'get_state_for_agent' in environment.py to see
+    what it contains.
+
+    :param game_state:  A dictionary describing the current game board.
+    :return: np.array
+    """
+    
     if game_state is None:
         return None
     
@@ -174,13 +164,11 @@ def state_to_features(game_state: dict, logger=None) -> np.array:
         bomb_map[bomb_rows, bomb_cols] = (settings.BOMB_TIMER - bomb_times) / settings.BOMB_TIMER
         assert bomb_map.min() >= 0 and bomb_map.max() <= 1
 
-    ## TODO: add info about their bomb possibility to the feature vector after cnn
     other_agents = game_state['others']
     other_agents_map = np.zeros_like(walls_map)
     for _,_,_,(row, col) in other_agents:
         other_agents_map[row, col] = 1
 
-    ## TODO: do something with the info for the bomb possibility
     my_agent = game_state['self']
     my_agent_map = np.zeros_like(walls_map)
     my_agent_map[my_agent[3]] = 1
@@ -194,26 +182,15 @@ def state_to_features(game_state: dict, logger=None) -> np.array:
                 freetiles_map[i,j] = 1
 
     #crop the maps around the agent position
-    #logger.info("-----------------")
     crates_map = crop_map(crates_map, my_agent[3], CROP_SIZE,logger)
-    #logger.info(f"Crates map shape: {crates_map.shape}")
     walls_map = crop_map(walls_map, my_agent[3], CROP_SIZE,logger)
-    #logger.info(f"Walls map shape: {walls_map.shape}")
     explosion_map = crop_map(explosion_map, my_agent[3], CROP_SIZE,logger)
-    #logger.info(f"Explosion map shape: {explosion_map.shape}")
     coin_map = crop_map(coin_map, my_agent[3], CROP_SIZE,logger)
-    #logger.info(f"Coin map shape: {coin_map.shape}")
     bomb_map = crop_map(bomb_map, my_agent[3], CROP_SIZE,logger)
-    #logger.info(f"Bomb map shape: {bomb_map.shape}")
     freetiles_map = crop_map(freetiles_map, my_agent[3], CROP_SIZE,logger)
-    #logger.info(f"Freetiles map shape: {freetiles_map.shape}")
     my_agent_map = crop_map(my_agent_map, my_agent[3], CROP_SIZE,logger)
-    #logger.info(f"My agent map shape: {my_agent_map.shape}")
     other_agents_map = crop_map(other_agents_map, my_agent[3], CROP_SIZE,logger)
-    #logger.info(f"Other agents map shape: {other_agents_map.shape}")
-    #logger.info("-----------------")
-
+    
 
     raw_features = np.stack([crates_map, walls_map, explosion_map, coin_map, bomb_map, freetiles_map, my_agent_map, other_agents_map]).astype(float)
-    # logger.info(f"Raw features shape: {raw_features.shape}")
     return raw_features

@@ -11,12 +11,6 @@ from replay import ReplayWorld
 
 ESCAPE_KEYS = (pygame.K_q, pygame.K_ESCAPE)
 
-TRAINING_CONFIG_DICTIONARY =  {
-    "TRAIN_ON_RULE_BASED_TRANSITIONS": True,
-    "FINISHED_TRAINING_ON_RULE_BASED_BUFFER": False,
-    "training_scenario": "coin-heaven",
-}
-
 class Timekeeper:
     def __init__(self, interval):
         self.interval = interval
@@ -99,6 +93,13 @@ def world_controller(world, n_rounds, *,
     world.end()
 
 
+### HYPER PARAM TUNING FUNCTION ###
+def hyperparam_tuning():
+    from agent_code.meister_eckhart.objectives import run_hyperparam_optimization
+
+    run_hyperparam_optimization()
+
+
 def main(argv = None):
     parser = ArgumentParser()
 
@@ -132,6 +133,10 @@ def main(argv = None):
     # Replay arguments
     replay_parser = subparsers.add_parser("replay")
     replay_parser.add_argument("replay", help="File to load replay from")
+
+    # Hyperparam tuning
+    hyperparam_parser = subparsers.add_parser("hyperparam_tuning")
+    
 
     # Interaction
     for sub in [play_parser, replay_parser]:
@@ -173,6 +178,9 @@ def main(argv = None):
     elif args.command_name == "replay":
         world = ReplayWorld(args)
         every_step = True
+    elif args.command_name == 'hyperparam_tuning':
+        hyperparam_tuning()
+        return
     else:
         raise ValueError(f"Unknown command {args.command_name}")
 
