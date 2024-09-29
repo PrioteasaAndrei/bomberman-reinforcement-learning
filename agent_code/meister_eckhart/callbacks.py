@@ -29,7 +29,7 @@ def setup(self):
         TRAIN_FROM_CHECKPOINT = False
     
     if self.train and os.path.isfile(MODEL_LOAD_PATH) and TRAIN_FROM_CHECKPOINT:
-        self.logger.info("Loading model from saved state for further training.")
+        self.logger.info("Loading model from saved state for further training. Loaded model is {}".format(MODEL_LOAD_PATH))
         self.policy_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
         self.target_net = create_model(input_shape=(8, 7, 7), num_actions=6, logger=self.logger, model_type=MODEL_TYPE).to(TRAIN_DEVICE)
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
@@ -100,6 +100,10 @@ def act(self, game_state: dict) -> str:
 
     self.logger.debug("Querying model for action.")
     self.logger.info(f"Chosen action: {ACTIONS[np.argmax(outputs_list)]}")
+    if random.random() < 0.1:
+            self.logger.debug("Choosing action purely at random.")
+            # 80%: walk in any direction. 10% wait. 10% bomb.
+            return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
     return ACTIONS[np.argmax(outputs_list)]
 
 

@@ -277,7 +277,7 @@ class GenericWorld:
             a.note_stat("rounds")
         self.round_statistics[self.round_id] = {
             "steps": self.step,
-            **{key: sum(a.statistics[key] for a in self.agents) for key in ["coins", "kills", "suicides"]}
+            **{key: sum(a.statistics[key] for a in self.agents) for key in ["coins", "kills", "suicides", "invalid"]}
         }
 
     def time_to_stop(self):

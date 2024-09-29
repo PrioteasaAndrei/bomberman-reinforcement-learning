@@ -27,9 +27,14 @@ TRAIN_DEVICE = torch.device(
 
 #Saving and loading
 MODEL_TYPE = "JointDQN"
-SCENARIO = "loot-crate" 
+SCENARIO = "classic_peaceful_agents" 
 MODEL_SAVE_PATH = "saved-model-" + SCENARIO +  ".pth.tar"
-MODEL_LOAD_PATH = 'saved_models/saved-model-coin-heaven1.pth.tar'
+# coin-heaven
+# MODEL_LOAD_PATH = 'saved_models/saved-model-coin-heaven1.pth.tar'
+# loot-crate
+MODEL_LOAD_PATH = 'saved_models/saved-model-loot-crate.pth.tar'
+# classic
+#MODEL_LOAD_PATH = 'saved_models/saved-model-classic.pth.tar'
 SAVE_MODEL_EVERY = 100
 
 

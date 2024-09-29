@@ -9,8 +9,8 @@ agent2="peaceful_agent"
 agent3="peaceful_agent"
 agent4="peaceful_agent"
 n_train=1
-n_rounds=700
-scenario="coin-heaven"
+n_rounds=2000
+scenario="classic"
 
 if [ "$n_train" -eq 1 ]; then
     mode_message="in training mode"
@@ -20,5 +20,5 @@ fi
 
 # Run game
 # echo "Running agent $agent1 $mode_message with $agent2, $agent3, $agent4 in scenario $scenario for $n_rounds episodes."
-# python main.py play --agents $agent1 $agent2 $agent3 $agent4 --train $n_train --n-rounds $n_rounds --scenario $scenario --no-gui
-python main.py play --agents $agent1 --train $n_train --n-rounds $n_rounds --scenario $scenario # --no-gui
+# python main.py play --agents rule_based_agent --n-rounds 10 --scenario coin-heaven --no-gui --save-stats
+python main.py play --agents $agent1 $agent2 $agent3 $agent4 --train $n_train --n-rounds $n_rounds --scenario $scenario --no-gui --save-stats
