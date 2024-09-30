@@ -8,8 +8,8 @@ agent1="meister_eckhart"
 agent2="peaceful_agent"
 agent3="peaceful_agent"
 agent4="peaceful_agent"
-n_train=1
-n_rounds=2000
+n_train=0
+n_rounds=500
 scenario="classic"
 
 if [ "$n_train" -eq 1 ]; then
